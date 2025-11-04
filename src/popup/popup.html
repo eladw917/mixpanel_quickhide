@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Mixpanel Quickhide</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Mixpanel Quickhide</h1>
+      <div class="header-icons">
+        <div class="icon-btn-wrapper">
+          <button id="exportIconBtn" class="icon-btn" title="Export Events">
+            <span class="icon">📥</span>
+          </button>
+          <span class="icon-label">Export</span>
+        </div>
+        <div class="icon-btn-wrapper">
+          <button id="importIconBtn" class="icon-btn" title="Import Events">
+            <span class="icon">📤</span>
+          </button>
+          <span class="icon-label">Import</span>
+        </div>
+        <div class="icon-btn-wrapper">
+          <button id="trashIconBtn" class="icon-btn trash-btn" title="Clear All Events">
+            <span class="icon">🗑️</span>
+          </button>
+          <span class="icon-label">Clear</span>
+        </div>
+        <input type="file" id="importFileInput" accept=".txt" style="display: none;">
+      </div>
+    </div>
+    
+    <div id="status" class="status">
+      <span id="statusIcon">●</span>
+      <span id="statusText">Checking...</span>
+    </div>
+    
+    <!-- Tab Navigation -->
+    <div id="tabNavigation" class="tab-navigation">
+      <button class="tab-btn active" data-tab="filterEvents">
+        <span class="tab-icon">🎯</span>
+        <span class="tab-label">Filter Events</span>
+      </button>
+      <!-- Future tabs can be added here -->
+    </div>
+    
+    <div id="inactiveView" class="inactive-view" style="display: none;">
+      <div class="inactive-content">
+        <div id="inactiveIcon" class="inactive-icon">🔒</div>
+        <h3 id="inactiveTitle">How to use</h3>
+        <p id="inactiveMessage">Go to Mixpanel, then click the <strong>"Users"</strong> button on the left pane</p>
+        <button id="openMixpanelBtn" class="btn btn-primary" style="margin-top: 16px;">
+          <span id="openMixpanelBtnText">Open Mixpanel</span>
+        </button>
+      </div>
+    </div>
+    
+    <div id="content">
+      <!-- Filter Events Tab -->
+      <div id="filterEventsTab" class="tab-content active">
+        <div class="section">
+        <h2>Stored Events</h2>
+        <div class="search-container">
+          <input 
+            type="text" 
+            id="searchInput" 
+            class="search-input" 
+            placeholder="Search events..."
+            autocomplete="off"
+          />
+          <button id="clearSearchBtn" class="clear-search-btn" title="Clear search" style="display: none;">
+            ✕
+          </button>
+          <span id="searchCount" class="search-count"></span>
+        </div>
+        <div id="eventsList" class="events-list">
+          <p class="empty-state">No events stored yet. Visit a Mixpanel profile page with hidden events to start.</p>
+        </div>
+      </div>
+      
+      <div class="selection-info">
+        <span id="selectionCount" class="selection-count">0 events selected</span>
+      </div>
+      
+      <div class="actions">
+        <button id="applyBtn" class="btn btn-primary" disabled>Apply Selected</button>
+      </div>
+      
+      <div class="actions">
+        <button id="checkAllBtn" class="btn btn-secondary">Check All</button>
+        <button id="clearBtn" class="btn btn-secondary">Uncheck All</button>
+      </div>
+      
+        <div class="footer">
+          <small>Select events and click "Apply Selected" to hide them in the current profile.</small>
+        </div>
+      </div>
+      <!-- End Filter Events Tab -->
+      
+      <!-- Future tabs content can be added here -->
+      
+    </div>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
+

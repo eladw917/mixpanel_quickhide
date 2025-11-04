@@ -1,0 +1,59 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+
+# Logs
+*.log
+npm-debug.log*
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Build artifacts (if you add build process)
+dist/
+build/
+*.zip
+
+# Environment
+.env
+.env.local
+
+# Node modules (if you add npm)
+node_modules/
+package-lock.json
+yarn.lock
+
+# Testing
+coverage/
+.nyc_output/
+
+# Extension data files
+mixpanel_events.txt
+
+# Release packages (if you create distribution ZIPs)
+releases/
+*.crx
+
+# Development notes (optional - uncomment if you don't want these in git)
+# *_NOTES.md
+# *_TODO.md
+

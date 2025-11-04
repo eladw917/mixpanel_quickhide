@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "Mixpanel Quickhide",
+  "version": "1.1.0",
+  "description": "Quickly hide and manage events in Mixpanel activity feeds",
+  "permissions": [
+    "storage",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "*://mixpanel.com/*"
+  ],
+  "action": {
+    "default_popup": "src/popup/popup.html",
+    "default_icon": {
+      "16": "src/assets/icons/icon16.png",
+      "48": "src/assets/icons/icon48.png",
+      "128": "src/assets/icons/icon128.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://mixpanel.com/project/*/view/*/app/profile*"],
+      "js": ["src/content.js"],
+      "run_at": "document_end",
+      "all_frames": false
+    }
+  ],
+  "icons": {
+    "16": "src/assets/icons/icon16.png",
+    "48": "src/assets/icons/icon48.png",
+    "128": "src/assets/icons/icon128.png"
+  }
+}
+
