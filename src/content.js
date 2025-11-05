@@ -56,6 +56,92 @@ async function saveDiscoveredEvents(events) {
   console.log('[Mixpanel Quickhide] Total saved events:', mergedEvents);
 }
 
+// Function to parse properties from DOM
+function parsePropertiesFromDOM() {
+  const properties = {};
+  
+  // Find all profile-editable-property elements
+  const propertyElements = document.querySelectorAll('profile-editable-property');
+  
+  console.log('[Mixpanel Quickhide] Found property elements:', propertyElements.length);
+  
+  propertyElements.forEach((element, index) => {
+    try {
+      // Get the property attribute
+      const propertyAttr = element.getAttribute('property');
+      if (!propertyAttr) {
+        console.log('[Mixpanel Quickhide] Property element has no property attribute:', index);
+        return;
+      }
+      
+      // Parse the JSON
+      const propertyData = JSON.parse(propertyAttr);
+      
+      // Extract name and value
+      const propertyName = propertyData?.name?.raw;
+      const propertyValue = propertyData?.renderValue?.renderString || '';
+      
+      if (propertyName) {
+        properties[propertyName] = propertyValue;
+        if (index < 3) {
+          console.log('[Mixpanel Quickhide] Parsed property:', propertyName, '=', propertyValue);
+        }
+      }
+    } catch (error) {
+      console.error('[Mixpanel Quickhide] Error parsing property:', error, element);
+    }
+  });
+  
+  console.log('[Mixpanel Quickhide] Total properties parsed:', Object.keys(properties).length);
+  
+  return properties;
+}
+
+// Function to save discovered property names to storage
+async function saveDiscoveredProperties(properties) {
+  const propertyNames = Object.keys(properties);
+  
+  if (propertyNames.length === 0) return;
+  
+  // Get existing properties from storage
+  const result = await chrome.storage.local.get(['discoveredProperties']);
+  const existingProperties = result.discoveredProperties || [];
+  
+  // Check if there are any new properties
+  const newProperties = propertyNames.filter(name => !existingProperties.includes(name));
+  
+  if (newProperties.length === 0) {
+    // No new properties to save
+    return;
+  }
+  
+  // Merge with new properties (avoid duplicates)
+  const mergedProperties = [...new Set([...existingProperties, ...propertyNames])];
+  
+  // Save back to storage
+  await chrome.storage.local.set({ discoveredProperties: mergedProperties });
+  
+  console.log('[Mixpanel Quickhide] Discovered new properties:', newProperties);
+  console.log('[Mixpanel Quickhide] Total saved properties:', mergedProperties);
+}
+
+// Function to check and parse properties
+function checkAndParseProperties() {
+  // Only run if we're on an activity feed page
+  if (!isOnActivityFeedPage()) {
+    console.log('[Mixpanel Quickhide] Not on activity feed page, skipping property parsing');
+    return;
+  }
+  
+  console.log('[Mixpanel Quickhide] Checking and parsing properties...');
+  const properties = parsePropertiesFromDOM();
+  if (Object.keys(properties).length > 0) {
+    saveDiscoveredProperties(properties);
+  } else {
+    console.log('[Mixpanel Quickhide] No properties found to save');
+  }
+}
+
 // Function to check URL and extract events
 function checkAndExtractEvents() {
   // Only run if we're on an activity feed page
@@ -83,6 +169,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   } else if (request.action === 'getCurrentEvents') {
     const currentEvents = extractHiddenEvents();
     sendResponse({ events: currentEvents });
+  } else if (request.action === 'getAllProperties') {
+    const properties = parsePropertiesFromDOM();
+    sendResponse({ properties: properties });
   }
   return true;
 });
@@ -164,7 +253,14 @@ function applyHiddenEventsToURL(eventsToHide) {
 // Initial check when page loads
 if (isOnActivityFeedPage()) {
   checkAndExtractEvents();
+  checkAndParseProperties();
   console.log('[Mixpanel Quickhide] Content script active on activity feed page');
+  
+  // Also check after a delay since properties might load dynamically
+  setTimeout(() => {
+    console.log('[Mixpanel Quickhide] Running delayed property check...');
+    checkAndParseProperties();
+  }, 2000);
 } else {
   console.log('[Mixpanel Quickhide] Not on activity feed page, waiting...');
 }
@@ -174,6 +270,7 @@ window.addEventListener('hashchange', () => {
   if (isOnActivityFeedPage()) {
     console.log('[Mixpanel Quickhide] URL changed, checking for new events...');
     checkAndExtractEvents();
+    checkAndParseProperties();
   }
 });
 
@@ -184,6 +281,46 @@ setInterval(() => {
     lastHash = window.location.hash;
     console.log('[Mixpanel Quickhide] Hash change detected via polling');
     checkAndExtractEvents();
+    checkAndParseProperties();
   }
 }, 500);
+
+// Set up MutationObserver to detect dynamically loaded properties
+if (isOnActivityFeedPage()) {
+  const observer = new MutationObserver((mutations) => {
+    // Check if any profile-editable-property elements were added
+    let propertiesAdded = false;
+    
+    for (const mutation of mutations) {
+      if (mutation.type === 'childList') {
+        // Check added nodes
+        for (const node of mutation.addedNodes) {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            // Check if the node itself or any of its children are profile-editable-property
+            if (node.tagName === 'PROFILE-EDITABLE-PROPERTY' || 
+                node.querySelector('profile-editable-property')) {
+              propertiesAdded = true;
+              break;
+            }
+          }
+        }
+      }
+      if (propertiesAdded) break;
+    }
+    
+    // If properties were added, parse and save them
+    if (propertiesAdded) {
+      console.log('[Mixpanel Quickhide] New properties detected in DOM');
+      checkAndParseProperties();
+    }
+  });
+  
+  // Start observing the document body for changes
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+  
+  console.log('[Mixpanel Quickhide] MutationObserver active for properties');
+}
 
