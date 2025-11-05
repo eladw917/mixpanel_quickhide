@@ -1,5 +1,8 @@
 # Mixpanel Quickhide - Quick Start Guide
 
+**Version:** 1.2.0  
+**Two Powerful Tabs:** Filter Events | Filter Properties
+
 ## 🚀 Installation (2 minutes)
 
 1. **Load the Extension**:
@@ -12,7 +15,9 @@
 
 ## 📖 First Use
 
-### Step 1: Let the Extension Learn Events
+### 🎯 Filter Events Tab
+
+#### Step 1: Let the Extension Learn Events
 
 1. Go to a Mixpanel user profile:
    ```
@@ -25,36 +30,73 @@
 
 3. The extension **automatically saves** these events!
 
-### Step 2: Use Saved Events on Other Profiles
+#### Step 2: Use Saved Events on Other Profiles
 
 1. Navigate to a different user's profile
-2. Click the extension icon
+2. Click the extension icon → **Filter Events** tab
 3. Check which events you want to hide
 4. Click **"Apply Selected"**
 5. Page reloads with events hidden! ✨
 
+### 👤 Filter Properties Tab
+
+#### Step 1: Automatic Property Discovery
+
+1. Visit any Mixpanel user profile
+2. Extension automatically discovers all user properties
+3. Properties appear in the **Filter Properties** tab
+
+#### Step 2: View Properties You Care About
+
+1. Click the extension icon → **Filter Properties** tab
+2. Check properties you want to track (e.g., City, Age, Email)
+3. Values appear instantly at the top!
+4. Missing properties show in **red**
+
 ## 🎯 Quick Actions
 
+### Filter Events Tab
 | Button | What It Does |
 |--------|--------------|
 | **Apply Selected** | Hide checked events in current profile (page reloads) |
 | **Check All** | Select all visible events |
 | **Uncheck All** | Deselect all visible events |
-| **📥 Export Events** | Download events to `.txt` file (shareable!) |
-| **📤 Import Events** | Load events from `.txt` file (replace or merge) |
+| **📥 Export** | Download all events to `.txt` file |
+| **📤 Import** | Load events from `.txt` file (replace or merge) |
+| **🗑️ Clear** | Delete all events from database |
 | **Search** | Filter events by name |
 | **× (delete)** | Remove individual events from list |
 
+### Filter Properties Tab
+| Button | What It Does |
+|--------|--------------|
+| **Check/Uncheck** | Auto-saves, shows values instantly |
+| **📥 Export** | Download selected properties to `.txt` file |
+| **📤 Import** | Load properties from file (adds to DB and selects) |
+| **🗑️ Clear** | Delete all properties from database |
+| **Search** | Filter properties by name |
+| **📋 Copy** (values) | Copy property value to clipboard |
+| **📋 Copy** (names) | Copy formatted property name |
+| **× Remove** (values) | Unselect property |
+| **× Delete** (names) | Remove property from database |
+
 ## 💡 Pro Tips
 
+### For Events
 1. **Check All once**: Hide all events across all users with one click
 2. **Checkboxes sync**: They show what's currently hidden on the page
 3. **Real-time detection**: Hide new events in Mixpanel, they're auto-added to the list
-4. **Works offline**: Events are stored locally, no internet needed
+4. **Manual events**: Search for an event → "Add manually" → temporary until applied
 5. **Share with team**: Export events and share the `.txt` file with teammates
-6. **Use search**: Type to quickly find events (if not found, add manually!)
-7. **Manual events**: Search for an event → "Add manually" → temporary until applied
-8. **Clean up**: Hover over events to see delete button (×)
+
+### For Properties
+1. **Instant updates**: Check a property, see its value immediately
+2. **Missing data**: Red text shows which properties aren't on current profile
+3. **Formatted names**: Hover to see original names (e.g., `$city`)
+4. **Quick copy**: Hover over values to copy them
+5. **Search both**: Search works on both original and formatted names
+6. **Share standards**: Export property lists so team tracks same attributes
+7. **Works offline**: Everything stored locally, no internet needed
 
 ## ⚠️ Common Issues
 

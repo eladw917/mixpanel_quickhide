@@ -11,6 +11,18 @@
       <h1>Mixpanel Quickhide</h1>
       <div class="header-icons">
         <div class="icon-btn-wrapper">
+          <button id="copyAnalyticsIdBtn" class="icon-btn" title="Copy Analytics ID">
+            <span class="icon">🆔</span>
+          </button>
+          <span class="icon-label">Copy ID</span>
+        </div>
+        <div class="icon-btn-wrapper">
+          <button id="shareUserPageBtn" class="icon-btn" title="Share User Page">
+            <span class="icon">🔗</span>
+          </button>
+          <span class="icon-label">Share</span>
+        </div>
+        <div class="icon-btn-wrapper">
           <button id="exportIconBtn" class="icon-btn" title="Export Events">
             <span class="icon">📥</span>
           </button>
@@ -43,17 +55,28 @@
         <span class="tab-icon">🎯</span>
         <span class="tab-label">Filter Events</span>
       </button>
-      <!-- Future tabs can be added here -->
+      <button class="tab-btn" data-tab="filterProperties">
+        <span class="tab-icon">👤</span>
+        <span class="tab-label">Filter Properties</span>
+      </button>
     </div>
     
     <div id="inactiveView" class="inactive-view" style="display: none;">
       <div class="inactive-content">
         <div id="inactiveIcon" class="inactive-icon">🔒</div>
         <h3 id="inactiveTitle">How to use</h3>
-        <p id="inactiveMessage">Go to Mixpanel, then click the <strong>"Users"</strong> button on the left pane</p>
-        <button id="openMixpanelBtn" class="btn btn-primary" style="margin-top: 16px;">
-          <span id="openMixpanelBtnText">Open Mixpanel</span>
-        </button>
+        <p id="inactiveMessage">Go to Mixpanel, then click the <strong>"Users"</strong> or <strong>"Events"</strong> button on the left pane</p>
+        <div class="inactive-buttons">
+          <button id="openMixpanelBtn" class="btn btn-primary">
+            <span id="openMixpanelBtnText">Open Mixpanel</span>
+          </button>
+          <button id="goToUsersBtn" class="btn btn-secondary" style="display: none;">
+            <span>Go to Users Page</span>
+          </button>
+          <button id="goToEventsBtn" class="btn btn-secondary" style="display: none;">
+            <span>Go to Events Page</span>
+          </button>
+        </div>
       </div>
     </div>
     
@@ -99,7 +122,38 @@
       </div>
       <!-- End Filter Events Tab -->
       
-      <!-- Future tabs content can be added here -->
+      <!-- Filter Properties Tab -->
+      <div id="filterPropertiesTab" class="tab-content">
+        <!-- Section 1: Current Values Display -->
+        <div class="section">
+          <h2>Current Property Values</h2>
+          <div id="propertyValuesList" class="property-values-list">
+            <p class="empty-state">Check properties below to see their values here.</p>
+          </div>
+        </div>
+        
+        <!-- Section 2: Property Database -->
+        <div class="section" style="margin-top: 16px;">
+          <h2>Stored Properties</h2>
+          <div class="search-container">
+            <input 
+              type="text" 
+              id="propertySearchInput" 
+              class="search-input" 
+              placeholder="Search properties..."
+              autocomplete="off"
+            />
+            <button id="clearPropertySearchBtn" class="clear-search-btn" title="Clear search" style="display: none;">
+              ✕
+            </button>
+            <span id="propertySearchCount" class="search-count"></span>
+          </div>
+          <div id="propertiesList" class="events-list">
+            <p class="empty-state">No properties stored yet. Visit a Mixpanel profile page to start.</p>
+          </div>
+        </div>
+      </div>
+      <!-- End Filter Properties Tab -->
       
     </div>
   </div>

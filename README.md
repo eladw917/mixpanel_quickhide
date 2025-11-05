@@ -1,6 +1,6 @@
 # Mixpanel Quickhide
 
-A Chrome extension that helps you quickly hide and manage events across different user profiles in Mixpanel's activity feed.
+A Chrome extension that helps you quickly hide events and view user properties across different user profiles in Mixpanel's activity feed.
 
 ## 📋 Quick Links
 
@@ -15,6 +15,7 @@ A Chrome extension that helps you quickly hide and manage events across differen
 
 ### 📖 Feature Documentation
 - **[Version 1.1.0 Summary](docs/features/VERSION_1.1.0_SUMMARY.md)** - What's new
+- **[Properties Filter Feature](docs/features/PROPERTIES_FILTER_FEATURE.md)** - View user properties
 - **[Export/Import Feature](docs/features/EXPORT_IMPORT_FEATURE.md)** - Team sharing
 - **[Icon Buttons Update](docs/features/ICON_BUTTONS_UPDATE.md)** - UI improvements
 
@@ -30,24 +31,33 @@ A Chrome extension that helps you quickly hide and manage events across differen
 2. **Navigate to Mixpanel**
    - Go to any user's activity feed
    - Click extension icon
-   - Select events to hide
-   - Click "Apply Selected"
+   - **Filter Events Tab:** Select events to hide → Click "Apply Selected"
+   - **Filter Properties Tab:** Check properties to track → View values instantly
 
 3. **Share with Team**
-   - Click 📥 Export
-   - Share `mixpanel_events.txt`
+   - Click 📥 Export (exports events or properties based on active tab)
+   - Share `.txt` file
    - Teammates click 📤 Import
 
 ---
 
 ## ✨ Key Features
 
+### Filter Events Tab
 - 📥 **Export/Import** - Share event lists with your team
 - 🔍 **Search & Filter** - Find events quickly
 - ➕ **Manual Add** - Add events that aren't discovered yet
 - 🗑️ **Manage Events** - Delete individual events or clear all
 - ⚡ **Real-time Sync** - Checkboxes sync with current URL
 - 💾 **Persistent Storage** - Events saved across sessions
+
+### Filter Properties Tab  
+- 👤 **View User Properties** - See key attributes from current profile
+- ✅ **Selective Display** - Only show properties you care about
+- 🔍 **Search Properties** - Find properties quickly
+- 📋 **Copy Values** - One-click copy of property values
+- 🎨 **Formatted Names** - Readable property names (e.g., `$city` → `City`)
+- 🔴 **Missing Data Detection** - Highlights properties not on current profile
 
 ---
 
@@ -119,7 +129,7 @@ For help:
 
 ---
 
-**Version:** 1.1.0  
+**Version:** 1.2.0  
 **Status:** Production Ready ✅  
 **Made with ❤️ to make Mixpanel workflows more efficient**
 
