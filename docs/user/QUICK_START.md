@@ -1,7 +1,7 @@
 # Mixpanel Quickhide - Quick Start Guide
 
-**Version:** 1.2.0  
-**Two Powerful Tabs:** Filter Events | Filter Properties
+**Version:** 1.3.0  
+**Three Powerful Tabs:** Filter Events | Filter Properties | Event Timeline
 
 ## 🚀 Installation (2 minutes)
 
@@ -80,6 +80,16 @@
 | **× Remove** (values) | Unselect property |
 | **× Delete** (names) | Remove property from database |
 
+### Event Timeline Tab
+| Button | What It Does |
+|--------|--------------|
+| **Check/Uncheck events** | Select events to track, auto-saves |
+| **Timeline events** | Click to expand in Mixpanel activity feed |
+| **Load more since [date]** | Load older events from Mixpanel |
+| **🗑️ Clear** | Uncheck all selected events |
+| **Search** | Filter event names |
+| **📥 Export/📤 Import** | Disabled (not applicable for timeline) |
+
 ## 💡 Pro Tips
 
 ### For Events
@@ -97,6 +107,15 @@
 5. **Search both**: Search works on both original and formatted names
 6. **Share standards**: Export property lists so team tracks same attributes
 7. **Works offline**: Everything stored locally, no internet needed
+
+### For Event Timeline
+1. **Global selection**: Selected events apply to all users automatically
+2. **Click to expand**: Click timeline events to open them in Mixpanel
+3. **Fresh data**: Event list always reflects current page state
+4. **Day separators**: Timeline grouped by day for easy scanning
+5. **Load more**: Button shows timeline start date
+6. **Track journeys**: Focus on key events to understand user flows
+7. **Event count**: See exactly how many instances are tracked
 
 ## ⚠️ Common Issues
 

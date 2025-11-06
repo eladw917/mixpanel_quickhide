@@ -59,6 +59,10 @@
         <span class="tab-icon">👤</span>
         <span class="tab-label">Filter Properties</span>
       </button>
+      <button class="tab-btn" data-tab="eventTimeline">
+        <span class="tab-icon">📅</span>
+        <span class="tab-label">Event Timeline</span>
+      </button>
     </div>
     
     <div id="inactiveView" class="inactive-view" style="display: none;">
@@ -154,6 +158,46 @@
         </div>
       </div>
       <!-- End Filter Properties Tab -->
+      
+      <!-- Event Timeline Tab -->
+      <div id="eventTimelineTab" class="tab-content">
+        <!-- Timeline Display (Top) -->
+        <div class="section timeline-display-section">
+          <h2>Timeline <span id="timelineEventCount" class="timeline-count"></span></h2>
+          <div id="timelineDisplay" class="timeline-display">
+            <p class="empty-state">Select events below to see their timeline.</p>
+          </div>
+        </div>
+        
+        <!-- Event Name Selection (Middle) -->
+        <div class="section event-selection-section">
+          <h2>Select Events to Track</h2>
+          <div class="search-container">
+            <input 
+              type="text" 
+              id="timelineSearchInput" 
+              class="search-input" 
+              placeholder="Search event names..."
+              autocomplete="off"
+            />
+            <button id="clearTimelineSearchBtn" class="clear-search-btn" title="Clear search" style="display: none;">
+              ✕
+            </button>
+            <span id="timelineSearchCount" class="search-count"></span>
+          </div>
+          <div id="timelineEventsList" class="events-list timeline-events-list">
+            <p class="empty-state">Loading events from activity feed...</p>
+          </div>
+        </div>
+        
+        <!-- Load More Button (Bottom) -->
+        <div class="actions" style="margin-top: 8px;">
+          <button id="loadMoreEventsBtn" class="btn btn-secondary" style="width: 100%;">
+            Load more events
+          </button>
+        </div>
+      </div>
+      <!-- End Event Timeline Tab -->
       
     </div>
   </div>

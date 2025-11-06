@@ -3,6 +3,9 @@
 
 let currentTab = null;
 let activeTabName = 'filterEvents'; // Track which tab is currently active
+let eventDatabase = []; // Store all events from activity feed
+let selectedTimelineEvents = []; // Store which event names user wants to track
+let currentDistinctId = null; // Store current user's distinct_id
 
 // Initialize popup
 document.addEventListener('DOMContentLoaded', async () => {
@@ -356,6 +359,44 @@ function switchTab(tabName) {
   if (tabName === 'filterProperties') {
     loadAndDisplayPropertyValues();
   }
+  
+  // Load timeline data when switching to timeline tab
+  if (tabName === 'eventTimeline') {
+    loadTimelineData();
+    // Disable Export/Import buttons on timeline tab
+    updateHeaderButtonsForTab('eventTimeline');
+  } else {
+    // Re-enable Export/Import buttons on other tabs
+    updateHeaderButtonsForTab(tabName);
+  }
+}
+
+// Update header buttons based on active tab
+function updateHeaderButtonsForTab(tabName) {
+  const exportBtn = document.getElementById('exportIconBtn');
+  const importBtn = document.getElementById('importIconBtn');
+  
+  if (tabName === 'eventTimeline') {
+    // Disable Export/Import on timeline tab
+    if (exportBtn) {
+      exportBtn.disabled = true;
+      exportBtn.style.opacity = '0.3';
+    }
+    if (importBtn) {
+      importBtn.disabled = true;
+      importBtn.style.opacity = '0.3';
+    }
+  } else {
+    // Enable Export/Import on other tabs
+    if (exportBtn) {
+      exportBtn.disabled = false;
+      exportBtn.style.opacity = '1';
+    }
+    if (importBtn) {
+      importBtn.disabled = false;
+      importBtn.style.opacity = '1';
+    }
+  }
 }
 
 // Restore last active tab from storage
@@ -368,10 +409,14 @@ async function restoreLastActiveTab() {
     
     // Switch to the saved tab (or default)
     switchTab(savedTab);
+    
+    // Ensure button states are correct for the active tab
+    updateHeaderButtonsForTab(savedTab);
   } catch (error) {
     console.error('[Popup] Error restoring last active tab:', error);
     // Fallback to default if error
     switchTab('filterEvents');
+    updateHeaderButtonsForTab('filterEvents');
   }
 }
 
@@ -918,6 +963,81 @@ function setupEventListeners() {
     propertySearchInput.focus();
   });
   
+  // ============ TIMELINE TAB EVENT LISTENERS ============
+  
+  // Timeline search input
+  const timelineSearchInput = document.getElementById('timelineSearchInput');
+  const clearTimelineSearchBtn = document.getElementById('clearTimelineSearchBtn');
+  
+  if (timelineSearchInput && clearTimelineSearchBtn) {
+    timelineSearchInput.addEventListener('input', (e) => {
+      filterTimelineEventNames(e.target.value);
+      // Show/hide clear button
+      clearTimelineSearchBtn.style.display = e.target.value ? 'flex' : 'none';
+    });
+    
+    // Clear timeline search button
+    clearTimelineSearchBtn.addEventListener('click', () => {
+      timelineSearchInput.value = '';
+      filterTimelineEventNames('');
+      clearTimelineSearchBtn.style.display = 'none';
+      timelineSearchInput.focus();
+    });
+  }
+  
+  // Load More Events button
+  const loadMoreEventsBtn = document.getElementById('loadMoreEventsBtn');
+  if (loadMoreEventsBtn) {
+    loadMoreEventsBtn.addEventListener('click', async () => {
+      if (!currentTab) return;
+      
+      // Show loading state
+      const originalText = loadMoreEventsBtn.textContent;
+      loadMoreEventsBtn.textContent = 'Loading...';
+      loadMoreEventsBtn.disabled = true;
+      
+      try {
+        // Send message to content script to click the "Show more" button
+        const response = await chrome.tabs.sendMessage(currentTab.id, {
+          action: 'clickShowMore'
+        });
+        
+        if (response && response.success) {
+          console.log('[Popup] Successfully clicked Show more button');
+          // Wait a moment for events to load, then refresh timeline
+          setTimeout(async () => {
+            await loadTimelineData();
+            loadMoreEventsBtn.disabled = false;
+          }, 1500);
+        } else {
+          // Button not found - no more events to load
+          console.log('[Popup] No more events to load:', response?.error);
+          
+          // Get the earliest event info to display
+          try {
+            const earliestResponse = await chrome.tabs.sendMessage(currentTab.id, {
+              action: 'getEarliestEvent'
+            });
+            
+            if (earliestResponse && earliestResponse.earliestEvent) {
+              const dateText = earliestResponse.earliestEvent.replace(/^Since\s+/i, '');
+              loadMoreEventsBtn.textContent = `All events loaded\nsince ${dateText}`;
+            } else {
+              loadMoreEventsBtn.textContent = 'All events loaded';
+            }
+          } catch (err) {
+            loadMoreEventsBtn.textContent = 'All events loaded';
+          }
+          
+          loadMoreEventsBtn.disabled = true;
+        }
+      } catch (error) {
+        console.error('[Popup] Error clicking Show more:', error);
+        loadMoreEventsBtn.textContent = originalText;
+        loadMoreEventsBtn.disabled = false;
+      }
+    });
+  }
   
   // Copy Analytics ID button
   document.getElementById('copyAnalyticsIdBtn').addEventListener('click', async () => {
@@ -948,6 +1068,8 @@ function setupEventListeners() {
   document.getElementById('trashIconBtn').addEventListener('click', async () => {
     if (activeTabName === 'filterProperties') {
       await clearProperties();
+    } else if (activeTabName === 'eventTimeline') {
+      await clearTimelineSelections();
     } else {
       await clearEvents();
     }
@@ -1488,6 +1610,278 @@ async function shareUserPage() {
     console.error('[Popup] Error copying URL:', error);
     showNotification('Failed to copy URL', 'error');
   }
+}
+
+// ============ EVENT TIMELINE FUNCTIONS ============
+
+// Store earliest event info
+let earliestEventInfo = null;
+
+// Extract distinct_id from URL
+function getDistinctIdFromURL(url) {
+  if (!url) return null;
+  const match = url.match(/distinct_id=([^&]+)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+// Load timeline data from activity feed
+async function loadTimelineData() {
+  const timelineEventsList = document.getElementById('timelineEventsList');
+  const loadMoreBtn = document.getElementById('loadMoreEventsBtn');
+  
+  // Check if we're on an activity feed page and content script is available
+  const isLoaded = currentTab && await checkContentScript();
+  
+  if (!isLoaded) {
+    timelineEventsList.innerHTML = '<p class="empty-state">Not on activity feed page.</p>';
+    if (loadMoreBtn) loadMoreBtn.textContent = 'Load more events';
+    return;
+  }
+  
+  // Get distinct_id from current tab URL
+  currentDistinctId = getDistinctIdFromURL(currentTab.url);
+  
+  // Load saved selections (global, shared across all users)
+  const cached = await chrome.storage.local.get(['selectedTimelineEvents']);
+  const cachedSelected = cached['selectedTimelineEvents'] || [];
+  selectedTimelineEvents = cachedSelected;
+  
+  // Fetch fresh data from page
+  try {
+    const eventsResponse = await chrome.tabs.sendMessage(currentTab.id, {
+      action: 'getEventDatabase'
+    });
+    
+    const earliestResponse = await chrome.tabs.sendMessage(currentTab.id, {
+      action: 'getEarliestEvent'
+    });
+    
+    if (eventsResponse && eventsResponse.events) {
+      eventDatabase = eventsResponse.events;
+      console.log('[Popup] Loaded event database:', eventDatabase.length, 'events');
+      
+      // Store earliest event info
+      if (earliestResponse && earliestResponse.earliestEvent) {
+        earliestEventInfo = earliestResponse.earliestEvent;
+        
+        // Update Load More button text with the start date
+        if (loadMoreBtn) {
+          const dateText = earliestEventInfo.replace(/^Since\s+/i, '');
+          loadMoreBtn.textContent = `Load more\nsince ${dateText}`;
+        }
+      } else {
+        if (loadMoreBtn) loadMoreBtn.textContent = 'Load more events';
+      }
+      
+      // Display unique event names for selection (with saved selections restored)
+      displayTimelineEventNames();
+      
+      // Update timeline display
+      displayTimeline();
+    } else {
+      timelineEventsList.innerHTML = '<p class="empty-state">No events on this page.</p>';
+      if (loadMoreBtn) loadMoreBtn.textContent = 'Load more events';
+    }
+  } catch (error) {
+    console.error('[Popup] Error loading timeline data:', error);
+    timelineEventsList.innerHTML = '<p class="empty-state">Error loading events.</p>';
+    if (loadMoreBtn) loadMoreBtn.textContent = 'Load more events';
+  }
+}
+
+// Display unique event names as checkboxes
+function displayTimelineEventNames() {
+  const timelineEventsList = document.getElementById('timelineEventsList');
+  
+  if (eventDatabase.length === 0) {
+    timelineEventsList.innerHTML = '<p class="empty-state">No events in database.</p>';
+    return;
+  }
+  
+  // Get unique event names
+  const eventNames = [...new Set(eventDatabase.map(event => event.name))];
+  eventNames.sort();
+  
+  console.log('[Popup] Unique event names:', eventNames.length);
+  
+  timelineEventsList.innerHTML = '';
+  
+  eventNames.forEach(eventName => {
+    const label = document.createElement('label');
+    label.className = 'event-item';
+    
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.value = eventName;
+    checkbox.className = 'timeline-event-checkbox';
+    checkbox.checked = selectedTimelineEvents.includes(eventName);
+    
+    // Add change listener to update timeline
+    checkbox.addEventListener('change', async () => {
+      await updateSelectedTimelineEvents();
+      displayTimeline();
+    });
+    
+    const span = document.createElement('span');
+    span.textContent = eventName;
+    
+    label.appendChild(checkbox);
+    label.appendChild(span);
+    timelineEventsList.appendChild(label);
+  });
+}
+
+// Update selected timeline events
+async function updateSelectedTimelineEvents() {
+  const checkboxes = document.querySelectorAll('.timeline-event-checkbox:checked');
+  selectedTimelineEvents = Array.from(checkboxes).map(cb => cb.value);
+  console.log('[Popup] Selected timeline events:', selectedTimelineEvents);
+  
+  // Save to storage (global, shared across all users)
+  await chrome.storage.local.set({
+    selectedTimelineEvents: selectedTimelineEvents
+  });
+}
+
+// Display timeline with day separators
+function displayTimeline() {
+  const timelineDisplay = document.getElementById('timelineDisplay');
+  const timelineEventCount = document.getElementById('timelineEventCount');
+  
+  if (selectedTimelineEvents.length === 0) {
+    timelineDisplay.innerHTML = '<p class="empty-state">Select events below to see their timeline.</p>';
+    if (timelineEventCount) timelineEventCount.textContent = '';
+    return;
+  }
+  
+  // Filter events based on selection
+  const filteredEvents = eventDatabase.filter(event => 
+    selectedTimelineEvents.includes(event.name)
+  );
+  
+  if (filteredEvents.length === 0) {
+    timelineDisplay.innerHTML = '<p class="empty-state">No matching events in timeline.</p>';
+    if (timelineEventCount) timelineEventCount.textContent = '';
+    return;
+  }
+  
+  // Update event count
+  if (timelineEventCount) {
+    const eventText = filteredEvents.length === 1 ? 'event' : 'events';
+    timelineEventCount.textContent = `(${filteredEvents.length} ${eventText} tracked)`;
+  }
+  
+  // Build timeline HTML
+  timelineDisplay.innerHTML = '';
+  
+  // Group events by date
+  const eventsByDate = {};
+  filteredEvents.forEach(event => {
+    const date = event.date || 'Unknown Date';
+    if (!eventsByDate[date]) {
+      eventsByDate[date] = [];
+    }
+    eventsByDate[date].push(event);
+  });
+  
+  // Sort dates (most recent first)
+  const dates = Object.keys(eventsByDate);
+  
+  dates.forEach(date => {
+    // Add day separator
+    const separator = document.createElement('div');
+    separator.className = 'timeline-day-separator';
+    separator.textContent = date;
+    timelineDisplay.appendChild(separator);
+    
+    // Add events for this day
+    const eventsForDay = eventsByDate[date];
+    eventsForDay.forEach(event => {
+      const eventItem = document.createElement('div');
+      eventItem.className = 'timeline-event-item';
+      eventItem.style.cursor = 'pointer';
+      
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'timeline-event-name';
+      nameSpan.textContent = event.name;
+      
+      const timeSpan = document.createElement('span');
+      timeSpan.className = 'timeline-event-time';
+      timeSpan.textContent = event.displayTime || event.time || '';
+      
+      // Add click handler to open event in Mixpanel
+      eventItem.addEventListener('click', async () => {
+        if (currentTab) {
+          try {
+            await chrome.tabs.sendMessage(currentTab.id, {
+              action: 'openEvent',
+              eventName: event.name,
+              eventTime: event.displayTime || event.time
+            });
+          } catch (error) {
+            console.error('[Popup] Error opening event:', error);
+          }
+        }
+      });
+      
+      eventItem.appendChild(nameSpan);
+      eventItem.appendChild(timeSpan);
+      timelineDisplay.appendChild(eventItem);
+    });
+  });
+  
+  console.log('[Popup] Timeline displayed with', filteredEvents.length, 'events');
+}
+
+// Filter timeline event names based on search
+function filterTimelineEventNames(searchTerm) {
+  const eventItems = document.querySelectorAll('#timelineEventsList .event-item');
+  const searchLower = searchTerm.toLowerCase().trim();
+  
+  let visibleCount = 0;
+  
+  eventItems.forEach(item => {
+    const eventName = item.querySelector('span').textContent.toLowerCase();
+    const matches = eventName.includes(searchLower);
+    
+    item.style.display = matches ? 'flex' : 'none';
+    if (matches) visibleCount++;
+  });
+  
+  // Update search count
+  const searchCount = document.getElementById('timelineSearchCount');
+  if (searchTerm.trim()) {
+    searchCount.textContent = `${visibleCount} of ${eventItems.length}`;
+  } else {
+    searchCount.textContent = '';
+  }
+}
+
+// Clear all timeline event selections
+async function clearTimelineSelections() {
+  const checkboxes = document.querySelectorAll('.timeline-event-checkbox');
+  
+  if (checkboxes.length === 0) {
+    return;
+  }
+  
+  // Uncheck all checkboxes
+  checkboxes.forEach(cb => {
+    cb.checked = false;
+  });
+  
+  // Clear selected events
+  selectedTimelineEvents = [];
+  
+  // Save to storage (global, shared across all users)
+  await chrome.storage.local.set({
+    selectedTimelineEvents: []
+  });
+  
+  console.log('[Popup] Cleared all timeline selections');
+  
+  // Update timeline display (will show empty state)
+  displayTimeline();
 }
 
 // Show notification (disabled)
