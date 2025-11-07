@@ -1,4 +1,4 @@
-// Popup script for Mixpanel Quickhide
+// Popup script for Mixpanel Activity Navigator
 // Location: src/popup/popup.js
 
 let currentTab = null;
@@ -253,7 +253,7 @@ async function displayEvents(events, shouldSync = true) {
   const eventsList = document.getElementById('eventsList');
   
   if (events.length === 0) {
-    eventsList.innerHTML = '<p class="empty-state">No events stored yet. Visit a Mixpanel profile page with hidden events to start.</p>';
+    eventsList.innerHTML = '<p class="empty-state">Select events to hide from future activity feed. Either press the "Hide Events" button or write event name manually</p>';
     updateSelectionCount();
     return;
   }
@@ -1021,12 +1021,20 @@ function setupEventListeners() {
             
             if (earliestResponse && earliestResponse.earliestEvent) {
               const dateText = earliestResponse.earliestEvent.replace(/^Since\s+/i, '');
-              loadMoreEventsBtn.textContent = `All events loaded\nsince ${dateText}`;
+              loadMoreEventsBtn.textContent = 'All events loaded';
+              const dateInfoDiv = document.getElementById('loadMoreDateInfo');
+              if (dateInfoDiv) {
+                dateInfoDiv.textContent = `since ${dateText}`;
+              }
             } else {
               loadMoreEventsBtn.textContent = 'All events loaded';
+              const dateInfoDiv = document.getElementById('loadMoreDateInfo');
+              if (dateInfoDiv) dateInfoDiv.textContent = '';
             }
           } catch (err) {
             loadMoreEventsBtn.textContent = 'All events loaded';
+            const dateInfoDiv = document.getElementById('loadMoreDateInfo');
+            if (dateInfoDiv) dateInfoDiv.textContent = '';
           }
           
           loadMoreEventsBtn.disabled = true;
@@ -1666,11 +1674,19 @@ async function loadTimelineData() {
         
         // Update Load More button text with the start date
         if (loadMoreBtn) {
+          loadMoreBtn.textContent = 'Load more';
           const dateText = earliestEventInfo.replace(/^Since\s+/i, '');
-          loadMoreBtn.textContent = `Load more\nsince ${dateText}`;
+          const dateInfoDiv = document.getElementById('loadMoreDateInfo');
+          if (dateInfoDiv) {
+            dateInfoDiv.textContent = `since ${dateText}`;
+          }
         }
       } else {
-        if (loadMoreBtn) loadMoreBtn.textContent = 'Load more events';
+        if (loadMoreBtn) {
+          loadMoreBtn.textContent = 'Load more';
+          const dateInfoDiv = document.getElementById('loadMoreDateInfo');
+          if (dateInfoDiv) dateInfoDiv.textContent = '';
+        }
       }
       
       // Display unique event names for selection (with saved selections restored)
@@ -1813,6 +1829,16 @@ function displayTimeline() {
       eventItem.addEventListener('click', async () => {
         if (currentTab) {
           try {
+            // Convert currently clicked item to visited state
+            document.querySelectorAll('.timeline-event-item.clicked').forEach(item => {
+              item.classList.remove('clicked');
+              item.classList.add('visited');
+            });
+            
+            // Add clicked state to this event (and mark as visited)
+            eventItem.classList.add('clicked');
+            eventItem.classList.add('visited');
+            
             await chrome.tabs.sendMessage(currentTab.id, {
               action: 'openEvent',
               eventName: event.name,

@@ -1,6 +1,6 @@
-# Mixpanel Quickhide
+# Mixpanel Activity Navigator
 
-A Chrome extension that helps you quickly hide and manage events across different user profiles in Mixpanel's activity feed.
+A Chrome extension that helps you navigate Mixpanel activity feeds efficiently - filter events, track properties, and analyze user timelines across different profiles.
 
 ## 📋 Table of Contents
 
@@ -25,7 +25,7 @@ This means you have to manually hide the same events over and over again for eac
 
 ## Features
 
-### Filter Events Tab
+### Feed Cleaner Tab
 ✅ **Automatic Event Detection** - Discovers and saves hidden events from Mixpanel URLs in real-time  
 ✅ **Persistent Storage** - Events are stored locally and persist across sessions  
 ✅ **Quick Selection** - Checkbox interface with "Check All" and "Uncheck All" buttons  
@@ -36,7 +36,7 @@ This means you have to manually hide the same events over and over again for eac
 ✅ **Event Management** - Delete individual events from your list  
 ✅ **Search & Filter** - Quickly find events with built-in search
 
-### Filter Properties Tab
+### Property Finder Tab
 ✅ **Automatic Property Discovery** - Finds all user properties on the current profile  
 ✅ **Instant Value Display** - Check properties to see their values immediately  
 ✅ **Missing Property Detection** - Shows which properties don't exist for current user  
@@ -45,7 +45,7 @@ This means you have to manually hide the same events over and over again for eac
 ✅ **Export/Import** - Share property lists with your team  
 ✅ **Smart Search** - Search both original and formatted property names
 
-### Event Timeline Tab
+### Quick Timeline Tab
 ✅ **Event Tracking** - Select specific events to track across user journeys  
 ✅ **Chronological Timeline** - View selected events in time order with timestamps  
 ✅ **Day Separators** - Events grouped by day for easy navigation  
@@ -197,14 +197,14 @@ If you need to add an event that hasn't been auto-discovered yet:
 3. The event is added with a `[m]` indicator (manual)
 4. Manual events are temporary - they're converted to auto-discovered after "Apply Selected" if valid
 
-### Event Timeline Usage
+### Quick Timeline Usage
 
 Track specific events across user journeys:
 
 #### Selecting Events to Track
 
 1. Navigate to any user's activity feed
-2. Click the extension icon → **Event Timeline** tab
+2. Click the extension icon → **Quick Timeline** tab
 3. See all events from the current page
 4. Use search box to filter event names
 5. Check events you want to track (e.g., `exit_beyond_bp`, `quick_actions_completed`)
@@ -233,7 +233,7 @@ Track specific events across user journeys:
 
 #### Clearing Selection
 
-1. Click trash icon (🗑️) in header while on Event Timeline tab
+1. Click trash icon (🗑️) in header while on Quick Timeline tab
 2. All checkboxes unchecked instantly
 3. Timeline shows empty state
 4. No confirmation needed
@@ -251,7 +251,7 @@ Track specific events across user journeys:
 Goal: Track checkout flow errors
 
 1. Open User A's profile
-2. Go to Event Timeline tab
+2. Go to Quick Timeline tab
 3. Search "checkout" or "error"
 4. Check:
    - checkout_started
@@ -260,7 +260,7 @@ Goal: Track checkout flow errors
 5. See timeline showing these events
 
 6. Navigate to User B's profile
-7. Open extension → Event Timeline tab
+7. Open extension → Quick Timeline tab
 8. Same events already checked
 9. See User B's checkout events
 10. Click event to investigate in Mixpanel
@@ -608,7 +608,7 @@ For issues, questions, or suggestions:
 ## Changelog
 
 ### Version 1.3.0 (Current)
-- ✅ **Event Timeline Tab** - Track specific events across user journeys
+- ✅ **Quick Timeline Tab** - Track specific events across user journeys
 - ✅ Chronological timeline view with day separators
 - ✅ Click timeline events to expand in Mixpanel
 - ✅ Load more events with visible start date
@@ -619,7 +619,7 @@ For issues, questions, or suggestions:
 - ✅ Auto-save selections
 
 ### Version 1.2.0
-- ✅ **Filter Properties Tab** - Track user properties
+- ✅ **Property Finder Tab** - Track user properties
 - ✅ Automatic property discovery
 - ✅ Instant value display for selected properties
 - ✅ Missing property detection
@@ -629,7 +629,6 @@ For issues, questions, or suggestions:
 - ✅ Tab system for organized interface
 
 ### Version 1.1.0
-- ✅ Rebranded to "Mixpanel Quickhide"
 - ✅ Export events to `.txt` file
 - ✅ Import events from `.txt` file (replace or merge)
 - ✅ Manual event addition via search
@@ -663,4 +662,4 @@ Potential features for future versions:
 
 ---
 
-**Made with ❤️ to make Mixpanel workflows more efficient**
+**Made with ❤️ to make Mixpanel activity navigation effortless**

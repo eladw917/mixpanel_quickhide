@@ -1,4 +1,4 @@
-/* Mixpanel Quickhide - Popup Styles
+/* Mixpanel Activity Navigator - Popup Styles
  * Location: src/popup/popup.css
  */
 
@@ -434,7 +434,6 @@ h2 {
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
-  white-space: pre-line;
 }
 
 .btn:disabled {
@@ -727,6 +726,11 @@ h2 {
   overflow-y: auto;
 }
 
+.timeline-event-checkbox {
+  margin-right: 8px;
+  cursor: pointer;
+}
+
 .timeline-display {
   flex: 1;
   overflow-y: auto;
@@ -799,6 +803,31 @@ h2 {
   background-color: #e0e7ff;
   border-left: 3px solid #667eea;
   padding-left: 9px;
+}
+
+/* Visited state - grey text, normal background */
+.timeline-event-item.visited .timeline-event-name {
+  color: #6b7280;
+}
+
+.timeline-event-item.visited .timeline-event-time {
+  color: #9ca3af;
+}
+
+/* Clicked state - dark background, white text (overrides visited) */
+.timeline-event-item.clicked {
+  background-color: #4b5563;
+  border-left: 3px solid #374151;
+  padding-left: 9px;
+}
+
+.timeline-event-item.clicked .timeline-event-name {
+  color: #ffffff !important;
+  font-weight: 600;
+}
+
+.timeline-event-item.clicked .timeline-event-time {
+  color: #d1d5db !important;
 }
 
 .timeline-event-name {
