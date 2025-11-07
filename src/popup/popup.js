@@ -5,7 +5,6 @@ let currentTab = null;
 let activeTabName = 'filterEvents'; // Track which tab is currently active
 let eventDatabase = []; // Store all events from activity feed
 let selectedTimelineEvents = []; // Store which event names user wants to track
-let currentDistinctId = null; // Store current user's distinct_id
 
 // Initialize popup
 document.addEventListener('DOMContentLoaded', async () => {
@@ -218,7 +217,6 @@ async function checkContentScript() {
     });
     return response !== undefined;
   } catch (error) {
-    console.log('[Popup] Content script not loaded:', error.message);
     return false;
   }
 }
@@ -353,7 +351,6 @@ function switchTab(tabName) {
   // Save last active tab to storage
   chrome.storage.local.set({ lastActiveTab: tabName });
   
-  console.log('[Popup] Switched to tab:', tabName);
   
   // Load property values when switching to properties tab
   if (tabName === 'filterProperties') {
@@ -405,7 +402,6 @@ async function restoreLastActiveTab() {
     const result = await chrome.storage.local.get(['lastActiveTab']);
     const savedTab = result.lastActiveTab || 'filterEvents'; // Default to filterEvents
     
-    console.log('[Popup] Restoring last active tab:', savedTab);
     
     // Switch to the saved tab (or default)
     switchTab(savedTab);
@@ -579,7 +575,6 @@ async function deleteProperty(propertyName) {
     selectedProperties: updatedSelected
   });
   
-  console.log('[Popup] Deleted property:', propertyName);
   
   // Reload the properties list
   await loadStoredPropertyNames();
@@ -607,7 +602,6 @@ async function onPropertyCheckboxChange() {
   // Save to storage
   await chrome.storage.local.set({ selectedProperties });
   
-  console.log('[Popup] Property selection updated:', selectedProperties);
   
   // Reload property values display
   await loadAndDisplayPropertyValues();
@@ -720,7 +714,10 @@ function displayPropertyValues(allProperties, selectedProperties) {
     
     const valueSpan = document.createElement('span');
     valueSpan.className = 'property-value-text';
-    valueSpan.textContent = propValue || '(empty)';
+    const displayValue = propValue || '(empty)';
+    valueSpan.textContent = displayValue;
+    // Add tooltip to show full value when hovering over truncated text
+    valueSpan.title = displayValue;
     
     // Action buttons container
     const actionButtons = document.createElement('div');
@@ -783,7 +780,6 @@ async function removePropertyFromSelection(propertyName) {
   // Save back to storage
   await chrome.storage.local.set({ selectedProperties: updatedSelected });
   
-  console.log('[Popup] Removed property from selection:', propertyName);
   
   // Uncheck the corresponding checkbox in the properties list
   const checkbox = document.querySelector(`.property-checkbox[value="${propertyName}"]`);
@@ -855,7 +851,6 @@ function setupEventListeners() {
   // Apply button
   document.getElementById('applyBtn').addEventListener('click', async () => {
     const selectedEvents = getSelectedEvents();
-    console.log('[Popup] Applying events:', selectedEvents);
     
     if (currentTab) {
       try {
@@ -864,12 +859,10 @@ function setupEventListeners() {
           events: selectedEvents
         });
         
-        console.log('[Popup] Response from content script:', response);
         
         if (response && response.success) {
           // Clear manual events after applying - they'll be auto-discovered if valid
           await chrome.storage.local.set({ manualEvents: [] });
-          console.log('[Popup] Cleared manual events - will be auto-discovered if valid');
           
           // Clear search bar
           const searchInput = document.getElementById('searchInput');
@@ -901,14 +894,12 @@ function setupEventListeners() {
   
   // Check all button
   document.getElementById('checkAllBtn').addEventListener('click', () => {
-    console.log('[Popup] Check All clicked');
     // Only check visible checkboxes (respects search filter)
     const checkboxes = document.querySelectorAll('.event-checkbox');
     checkboxes.forEach(cb => {
       const isVisible = cb.closest('.event-item').style.display !== 'none';
       if (isVisible) {
         cb.checked = true;
-        console.log('[Popup] Checked:', cb.value);
       }
     });
     updateSelectionCount();
@@ -917,14 +908,12 @@ function setupEventListeners() {
   
   // Clear all button (uncheck all checkboxes)
   document.getElementById('clearBtn').addEventListener('click', () => {
-    console.log('[Popup] Uncheck All clicked');
     // Only uncheck visible checkboxes (respects search filter)
     const checkboxes = document.querySelectorAll('.event-checkbox');
     checkboxes.forEach(cb => {
       const isVisible = cb.closest('.event-item').style.display !== 'none';
       if (isVisible) {
         cb.checked = false;
-        console.log('[Popup] Unchecked:', cb.value);
       }
     });
     updateSelectionCount();
@@ -1003,7 +992,6 @@ function setupEventListeners() {
         });
         
         if (response && response.success) {
-          console.log('[Popup] Successfully clicked Show more button');
           // Wait a moment for events to load, then refresh timeline
           setTimeout(async () => {
             await loadTimelineData();
@@ -1011,7 +999,6 @@ function setupEventListeners() {
           }, 1500);
         } else {
           // Button not found - no more events to load
-          console.log('[Popup] No more events to load:', response?.error);
           
           // Get the earliest event info to display
           try {
@@ -1132,11 +1119,9 @@ async function syncCheckboxesWithURL() {
       action: 'getCurrentEvents'
     });
     
-    console.log('[Popup] Sync response:', response);
     
     if (response && response.events) {
       const currentURLEvents = response.events;
-      console.log('[Popup] Current URL events:', currentURLEvents);
       
       // Only sync if there are actually events in the URL
       // Otherwise keep the default "all checked" state
@@ -1146,14 +1131,11 @@ async function syncCheckboxesWithURL() {
         checkboxes.forEach(checkbox => {
           checkbox.checked = currentURLEvents.includes(checkbox.value);
         });
-        console.log('[Popup] Checkboxes synced with URL events');
       } else {
-        console.log('[Popup] No events in URL, keeping default checked state');
       }
     }
   } catch (error) {
     // Silently fail - this is expected when content script isn't loaded
-    console.log('[Popup] Content script not available for sync');
   }
 }
 
@@ -1243,7 +1225,6 @@ async function addManualEvent(eventName) {
   // Save to storage
   await chrome.storage.local.set({ manualEvents });
   
-  console.log('[Popup] Added manual event:', trimmedName);
   
   // Clear search and reload
   document.getElementById('searchInput').value = '';
@@ -1275,7 +1256,6 @@ async function deleteEvent(eventName, isManual) {
     await chrome.storage.local.set({ hiddenEvents: updatedAuto });
   }
   
-  console.log('[Popup] Deleted event:', eventName, isManual ? '(manual)' : '(auto)');
   
   // Reload the events list
   await loadStoredEvents();
@@ -1355,7 +1335,6 @@ async function exportEvents() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     
-    console.log('[Popup] Exported events:', allEvents.length);
     showNotification(`${allEvents.length} event${allEvents.length !== 1 ? 's' : ''} exported`, 'success');
   } catch (error) {
     console.error('[Popup] Error exporting events:', error);
@@ -1392,7 +1371,6 @@ async function importEvents(fileContent) {
         hiddenEvents: uniqueEvents,
         manualEvents: []
       });
-      console.log('[Popup] Replaced events with imported ones');
     } else {
       // Merge: combine with existing events
       const result = await chrome.storage.local.get(['hiddenEvents', 'manualEvents']);
@@ -1406,7 +1384,6 @@ async function importEvents(fileContent) {
         hiddenEvents: mergedEvents,
         manualEvents: []
       });
-      console.log('[Popup] Merged imported events with existing ones');
     }
     
     // Reload events
@@ -1455,7 +1432,6 @@ async function exportProperties() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     
-    console.log('[Popup] Exported properties:', selectedProperties.length);
     showNotification(`${selectedProperties.length} propert${selectedProperties.length !== 1 ? 'ies' : 'y'} exported`, 'success');
   } catch (error) {
     console.error('[Popup] Error exporting properties:', error);
@@ -1496,7 +1472,6 @@ async function importProperties(fileContent) {
       selectedProperties: mergedSelected
     });
     
-    console.log('[Popup] Imported properties:', uniqueProperties.length);
     
     // Reload properties list
     await loadStoredPropertyNames();
@@ -1534,7 +1509,6 @@ async function clearProperties() {
       discoveredProperties: [],
       selectedProperties: []
     });
-    console.log('[Popup] Cleared all properties');
     
     // Reload UI
     await loadStoredPropertyNames();
@@ -1564,7 +1538,6 @@ async function clearEvents() {
       hiddenEvents: [],
       manualEvents: []
     });
-    console.log('[Popup] Cleared all events');
     
     // Reload events list
     await loadStoredEvents();
@@ -1595,7 +1568,6 @@ async function copyAnalyticsId() {
     // Copy to clipboard
     await navigator.clipboard.writeText(analyticsId);
     showNotification('Analytics ID copied!', 'success');
-    console.log('[Popup] Copied analytics ID:', analyticsId);
   } catch (error) {
     console.error('[Popup] Error copying analytics ID:', error);
     showNotification('Failed to copy ID', 'error');
@@ -1613,7 +1585,6 @@ async function shareUserPage() {
     // Copy full URL to clipboard
     await navigator.clipboard.writeText(currentTab.url);
     showNotification('Page URL copied!', 'success');
-    console.log('[Popup] Copied page URL:', currentTab.url);
   } catch (error) {
     console.error('[Popup] Error copying URL:', error);
     showNotification('Failed to copy URL', 'error');
@@ -1625,12 +1596,6 @@ async function shareUserPage() {
 // Store earliest event info
 let earliestEventInfo = null;
 
-// Extract distinct_id from URL
-function getDistinctIdFromURL(url) {
-  if (!url) return null;
-  const match = url.match(/distinct_id=([^&]+)/);
-  return match ? decodeURIComponent(match[1]) : null;
-}
 
 // Load timeline data from activity feed
 async function loadTimelineData() {
@@ -1645,9 +1610,6 @@ async function loadTimelineData() {
     if (loadMoreBtn) loadMoreBtn.textContent = 'Load more events';
     return;
   }
-  
-  // Get distinct_id from current tab URL
-  currentDistinctId = getDistinctIdFromURL(currentTab.url);
   
   // Load saved selections (global, shared across all users)
   const cached = await chrome.storage.local.get(['selectedTimelineEvents']);
@@ -1666,7 +1628,6 @@ async function loadTimelineData() {
     
     if (eventsResponse && eventsResponse.events) {
       eventDatabase = eventsResponse.events;
-      console.log('[Popup] Loaded event database:', eventDatabase.length, 'events');
       
       // Store earliest event info
       if (earliestResponse && earliestResponse.earliestEvent) {
@@ -1718,7 +1679,6 @@ function displayTimelineEventNames() {
   const eventNames = [...new Set(eventDatabase.map(event => event.name))];
   eventNames.sort();
   
-  console.log('[Popup] Unique event names:', eventNames.length);
   
   timelineEventsList.innerHTML = '';
   
@@ -1751,7 +1711,6 @@ function displayTimelineEventNames() {
 async function updateSelectedTimelineEvents() {
   const checkboxes = document.querySelectorAll('.timeline-event-checkbox:checked');
   selectedTimelineEvents = Array.from(checkboxes).map(cb => cb.value);
-  console.log('[Popup] Selected timeline events:', selectedTimelineEvents);
   
   // Save to storage (global, shared across all users)
   await chrome.storage.local.set({
@@ -1856,7 +1815,6 @@ function displayTimeline() {
     });
   });
   
-  console.log('[Popup] Timeline displayed with', filteredEvents.length, 'events');
 }
 
 // Filter timeline event names based on search
@@ -1904,7 +1862,6 @@ async function clearTimelineSelections() {
     selectedTimelineEvents: []
   });
   
-  console.log('[Popup] Cleared all timeline selections');
   
   // Update timeline display (will show empty state)
   displayTimeline();
