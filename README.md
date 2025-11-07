@@ -1,6 +1,6 @@
-# Mixpanel Quickhide
+# Mixpanel Activity Navigator
 
-A Chrome extension that helps you quickly hide events and view user properties across different user profiles in Mixpanel's activity feed.
+A Chrome extension that helps you navigate Mixpanel activity feeds efficiently - filter events, track properties, and analyze user timelines across different profiles.
 
 ## 📋 Quick Links
 

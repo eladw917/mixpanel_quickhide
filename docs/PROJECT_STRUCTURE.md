@@ -1,4 +1,4 @@
-# Project Structure - Mixpanel Quickhide
+# Project Structure - Mixpanel Activity Navigator
 
 ## 📁 Directory Organization
 

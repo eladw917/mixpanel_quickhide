@@ -1,4 +1,4 @@
-// Content script for Mixpanel Quickhide
+// Content script for Mixpanel Activity Navigator
 // Location: src/content.js
 
 // Check if we're on an actual user activity feed page
@@ -52,8 +52,6 @@ async function saveDiscoveredEvents(events) {
   // Save back to storage
   await chrome.storage.local.set({ hiddenEvents: mergedEvents });
   
-    console.log('[Mixpanel Quickhide] Discovered new events:', newEvents);
-  console.log('[Mixpanel Quickhide] Total saved events:', mergedEvents);
 }
 
 // Function to parse properties from DOM
@@ -63,14 +61,12 @@ function parsePropertiesFromDOM() {
   // Find all profile-editable-property elements
   const propertyElements = document.querySelectorAll('profile-editable-property');
   
-  console.log('[Mixpanel Quickhide] Found property elements:', propertyElements.length);
   
   propertyElements.forEach((element, index) => {
     try {
       // Get the property attribute
       const propertyAttr = element.getAttribute('property');
       if (!propertyAttr) {
-        console.log('[Mixpanel Quickhide] Property element has no property attribute:', index);
         return;
       }
       
@@ -84,15 +80,13 @@ function parsePropertiesFromDOM() {
       if (propertyName) {
         properties[propertyName] = propertyValue;
         if (index < 3) {
-          console.log('[Mixpanel Quickhide] Parsed property:', propertyName, '=', propertyValue);
         }
       }
     } catch (error) {
-      console.error('[Mixpanel Quickhide] Error parsing property:', error, element);
+      console.error('[Mixpanel Activity Navigator] Error parsing property:', error, element);
     }
   });
   
-  console.log('[Mixpanel Quickhide] Total properties parsed:', Object.keys(properties).length);
   
   return properties;
 }
@@ -121,24 +115,120 @@ async function saveDiscoveredProperties(properties) {
   // Save back to storage
   await chrome.storage.local.set({ discoveredProperties: mergedProperties });
   
-  console.log('[Mixpanel Quickhide] Discovered new properties:', newProperties);
-  console.log('[Mixpanel Quickhide] Total saved properties:', mergedProperties);
+}
+
+// Function to parse events from activity feed
+function parseEventsFromDOM() {
+  const events = [];
+  
+  // Find the profile-activity container
+  const profileActivity = document.querySelector('profile-activity');
+  if (!profileActivity) {
+    return events;
+  }
+  
+  // Get the main container with all events
+  const activityContainer = profileActivity.querySelector('div');
+  if (!activityContainer) {
+    return events;
+  }
+  
+  // Track current date as we parse
+  let currentDate = null;
+  
+  // Walk through all child nodes to find dates and events in order
+  const processChildren = (parent) => {
+    Array.from(parent.childNodes).forEach(node => {
+      // Check if it's a text node with date information
+      if (node.nodeType === Node.TEXT_NODE) {
+        const text = node.textContent.trim();
+        // Match patterns like "Today · November 6, 2025" or "November 6, 2025"
+        if (text && (text.includes('·') || /^[A-Z][a-z]+\s+\d+,\s+\d{4}$/.test(text))) {
+          currentDate = text;
+        }
+      }
+      
+      // Check if it's an event wrapper element
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        if (node.classList && node.classList.contains('activity-event-wrapper')) {
+          const timeEl = node.querySelector('.activity-time');
+          const nameEl = node.querySelector('.activity-event-title');
+          
+          if (timeEl && nameEl) {
+            const displayTime = timeEl.textContent.trim();
+            const eventName = nameEl.textContent.trim();
+            
+            events.push({
+              name: eventName,
+              displayTime: displayTime,
+              date: currentDate || 'Unknown Date'
+            });
+          }
+        } else {
+          // Recursively process child elements
+          processChildren(node);
+        }
+      }
+    });
+  };
+  
+  processChildren(activityContainer);
+  
+  if (events.length > 0) {
+  }
+  
+  return events;
+}
+
+// Function to extract earliest event info
+function extractEarliestEvent() {
+  try {
+    // Target the since-date-wrapper div directly
+    const sinceDateWrapper = document.querySelector('.since-date-wrapper');
+    if (sinceDateWrapper) {
+      return sinceDateWrapper.textContent;
+    }
+    return null;
+  } catch (error) {
+    return null;
+  }
 }
 
 // Function to check and parse properties
 function checkAndParseProperties() {
   // Only run if we're on an activity feed page
   if (!isOnActivityFeedPage()) {
-    console.log('[Mixpanel Quickhide] Not on activity feed page, skipping property parsing');
     return;
   }
   
-  console.log('[Mixpanel Quickhide] Checking and parsing properties...');
   const properties = parsePropertiesFromDOM();
   if (Object.keys(properties).length > 0) {
     saveDiscoveredProperties(properties);
   } else {
-    console.log('[Mixpanel Quickhide] No properties found to save');
+  }
+}
+
+// Click the "Show more" button
+function clickShowMoreButton() {
+  try {
+    const profileActivity = document.querySelector('profile-activity');
+    if (!profileActivity) {
+      return { success: false, error: 'Activity feed not found' };
+    }
+    
+    // Find the "Show more" button
+    const buttons = profileActivity.querySelectorAll('mp-button');
+    for (const button of buttons) {
+      if (button.textContent.trim() === 'Show more') {
+        button.click();
+        return { success: true };
+      }
+    }
+    
+    return { success: false, error: 'Show more button not found' };
+  } catch (error) {
+    console.error('[Mixpanel Activity Navigator] Error clicking show more:', error);
+    return { success: false, error: error.message };
   }
 }
 
@@ -152,6 +242,47 @@ function checkAndExtractEvents() {
   const events = extractHiddenEvents();
   if (events.length > 0) {
     saveDiscoveredEvents(events);
+  }
+}
+
+// Function to find and open a specific event
+function openEventInFeed(eventName, eventTime) {
+  try {
+    // Find all event wrappers
+    const eventWrappers = document.querySelectorAll('.activity-event-wrapper');
+    
+    for (const wrapper of eventWrappers) {
+      const nameEl = wrapper.querySelector('.activity-event-title');
+      const timeEl = wrapper.querySelector('.activity-time');
+      
+      if (nameEl && timeEl) {
+        const name = nameEl.textContent.trim();
+        const time = timeEl.textContent.trim();
+        
+        // Match by name and time
+        if (name === eventName && time === eventTime) {
+          // Find the mp-section inside this wrapper
+          const mpSection = wrapper.querySelector('mp-section');
+          if (mpSection) {
+            // Click the section to expand it
+            const titleContainer = mpSection.shadowRoot?.querySelector('.mp-section-title-container');
+            if (titleContainer) {
+              titleContainer.click();
+            }
+            
+            // Scroll into view
+            wrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            return { success: true };
+          }
+        }
+      }
+    }
+    
+    return { success: false, error: 'Event not found on page' };
+  } catch (error) {
+    console.error('[Mixpanel Activity Navigator] Error opening event:', error);
+    return { success: false, error: error.message };
   }
 }
 
@@ -172,37 +303,49 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   } else if (request.action === 'getAllProperties') {
     const properties = parsePropertiesFromDOM();
     sendResponse({ properties: properties });
+  } else if (request.action === 'getEventDatabase') {
+    // Get all events from the activity feed
+    const events = parseEventsFromDOM();
+    sendResponse({ events: events });
+  } else if (request.action === 'getEarliestEvent') {
+    // Get the earliest event info
+    const earliestEvent = extractEarliestEvent();
+    sendResponse({ earliestEvent: earliestEvent });
+  } else if (request.action === 'clickShowMore') {
+    // Click the "Show more" button
+    const result = clickShowMoreButton();
+    sendResponse(result);
+  } else if (request.action === 'openEvent') {
+    // Open a specific event in the feed
+    const result = openEventInFeed(request.eventName, request.eventTime);
+    sendResponse(result);
   }
   return true;
 });
 
 // Function to apply selected events to the URL
 function applyHiddenEventsToURL(eventsToHide) {
-  console.log('[Mixpanel Quickhide] Applying events:', eventsToHide);
   
   const currentHash = window.location.hash;
   
   if (!currentHash) {
-    console.error('[Mixpanel Quickhide] No hash in URL');
+    console.error('[Mixpanel Activity Navigator] No hash in URL');
     return;
   }
   
   // Remove the leading #
   let hashContent = currentHash.substring(1);
-  console.log('[Mixpanel Quickhide] Original hash:', hashContent);
   
   // Build the excludedEvents string
   const excludedEventsString = eventsToHide.length > 0
     ? `excludedEvents~(${eventsToHide.map(e => `~'${e}`).join('')})`
     : '';
   
-  console.log('[Mixpanel Quickhide] excludedEvents string:', excludedEventsString || '(empty - removing)');
   
   // Check if there's already an excludedEvents section
   const excludedEventsRegex = /excludedEvents~\([^)]*\)/;
   
   if (excludedEventsRegex.test(hashContent)) {
-    console.log('[Mixpanel Quickhide] Found existing excludedEvents, replacing...');
     // Replace existing excludedEvents
     if (excludedEventsString) {
       // Simply replace the excludedEvents section
@@ -221,7 +364,6 @@ function applyHiddenEventsToURL(eventsToHide) {
       hashContent = hashContent.replace(/excludedEvents~\([^)]*\)/, '');
     }
   } else if (excludedEventsString) {
-    console.log('[Mixpanel Quickhide] No existing excludedEvents, adding...');
     // Add excludedEvents section
     // Check if there's already a &~(...) parameter group
     if (hashContent.includes('&~(')) {
@@ -234,7 +376,6 @@ function applyHiddenEventsToURL(eventsToHide) {
     }
   }
   
-  console.log('[Mixpanel Quickhide] New hash:', hashContent);
   
   // Save current scroll position
   const scrollY = window.scrollY;
@@ -245,7 +386,6 @@ function applyHiddenEventsToURL(eventsToHide) {
   // Method 2: Force page reload to ensure Mixpanel processes the change
   // Small delay to ensure hash is updated first
   setTimeout(() => {
-    console.log('[Mixpanel Quickhide] Reloading page to apply changes...');
     window.location.reload();
   }, 100);
 }
@@ -254,21 +394,17 @@ function applyHiddenEventsToURL(eventsToHide) {
 if (isOnActivityFeedPage()) {
   checkAndExtractEvents();
   checkAndParseProperties();
-  console.log('[Mixpanel Quickhide] Content script active on activity feed page');
   
   // Also check after a delay since properties might load dynamically
   setTimeout(() => {
-    console.log('[Mixpanel Quickhide] Running delayed property check...');
     checkAndParseProperties();
   }, 2000);
 } else {
-  console.log('[Mixpanel Quickhide] Not on activity feed page, waiting...');
 }
 
 // Monitor hash changes - this will capture real-time event hiding
 window.addEventListener('hashchange', () => {
   if (isOnActivityFeedPage()) {
-    console.log('[Mixpanel Quickhide] URL changed, checking for new events...');
     checkAndExtractEvents();
     checkAndParseProperties();
   }
@@ -279,17 +415,17 @@ let lastHash = window.location.hash;
 setInterval(() => {
   if (isOnActivityFeedPage() && window.location.hash !== lastHash) {
     lastHash = window.location.hash;
-    console.log('[Mixpanel Quickhide] Hash change detected via polling');
     checkAndExtractEvents();
     checkAndParseProperties();
   }
-}, 500);
+}, 2000);
 
 // Set up MutationObserver to detect dynamically loaded properties
 if (isOnActivityFeedPage()) {
   const observer = new MutationObserver((mutations) => {
     // Check if any profile-editable-property elements were added
     let propertiesAdded = false;
+    let eventsAdded = false;
     
     for (const mutation of mutations) {
       if (mutation.type === 'childList') {
@@ -300,18 +436,28 @@ if (isOnActivityFeedPage()) {
             if (node.tagName === 'PROFILE-EDITABLE-PROPERTY' || 
                 node.querySelector('profile-editable-property')) {
               propertiesAdded = true;
-              break;
+            }
+            
+            // Check if activity events were added
+            if (node.classList?.contains('activity-event-wrapper') ||
+                node.querySelector('.activity-event-wrapper')) {
+              eventsAdded = true;
             }
           }
         }
       }
-      if (propertiesAdded) break;
+      if (propertiesAdded && eventsAdded) break;
     }
     
     // If properties were added, parse and save them
     if (propertiesAdded) {
-      console.log('[Mixpanel Quickhide] New properties detected in DOM');
       checkAndParseProperties();
+    }
+    
+    // If events were added, notify popup (it will re-fetch the event database)
+    if (eventsAdded) {
+      // The popup will need to refresh its event list
+      // We don't need to do anything here as the popup will call getEventDatabase again
     }
   });
   
@@ -321,6 +467,5 @@ if (isOnActivityFeedPage()) {
     subtree: true
   });
   
-  console.log('[Mixpanel Quickhide] MutationObserver active for properties');
 }
 

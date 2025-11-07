@@ -1,6 +1,9 @@
-/* Mixpanel Quickhide - Popup Styles
+/* Mixpanel Activity Navigator - Popup Styles
  * Location: src/popup/popup.css
  */
+
+/* Import Inter font */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 * {
   margin: 0;
@@ -9,7 +12,7 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   font-size: 14px;
   color: #333;
   background: #f5f5f5;
@@ -29,13 +32,13 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 10px 16px;
+  background: #6366f1;
   color: white;
 }
 
 h1 {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   color: white;
   margin: 0;
@@ -44,23 +47,21 @@ h1 {
 
 .header-icons {
   display: flex;
-  gap: 8px;
+  gap: 4px;
   align-items: center;
 }
 
 .icon-btn-wrapper {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 2px;
 }
 
 .icon-btn {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.35);
   border: none;
-  border-radius: 4px;
-  width: 24px;
-  height: 24px;
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -70,7 +71,7 @@ h1 {
 }
 
 .icon-btn:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.55);
   transform: translateY(-1px);
 }
 
@@ -85,25 +86,12 @@ h1 {
 }
 
 .icon-btn .icon {
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1;
 }
 
 .icon-btn.trash-btn:hover {
   background: rgba(239, 68, 68, 0.9);
-}
-
-.icon-label {
-  font-size: 9px;
-  color: rgba(255, 255, 255, 0.9);
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  white-space: nowrap;
-}
-
-.icon-btn-wrapper:has(.icon-btn:disabled) .icon-label {
-  opacity: 0.3;
 }
 
 h2 {
@@ -225,7 +213,7 @@ h2 {
   border: 1px solid #d1d5db;
   border-radius: 6px;
   font-size: 13px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-family: 'Inter', sans-serif;
   transition: border-color 0.2s, box-shadow 0.2s;
   background: white;
   box-sizing: border-box;
@@ -523,7 +511,7 @@ h2 {
   padding: 2px 6px;
   border-radius: 3px;
   font-size: 11px;
-  font-family: 'Monaco', 'Courier New', monospace;
+  font-family: 'Inter', sans-serif;
 }
 
 .inactive-buttons {
@@ -583,7 +571,8 @@ h2 {
 }
 
 .property-value-item {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(120px, auto) auto 1fr auto;
   padding: 8px 12px;
   border-bottom: 1px solid #f0f0f0;
   align-items: center;
@@ -601,7 +590,6 @@ h2 {
 
 .property-value-item:hover .property-action-buttons {
   opacity: 1;
-  background: linear-gradient(to right, transparent, #f9fafb 20%, #f9fafb 100%);
 }
 
 .property-value-name {
@@ -609,31 +597,27 @@ h2 {
   color: #667eea;
   font-size: 13px;
   word-break: break-word;
-  flex: 0 1 auto;
-  max-width: 60%;
+  cursor: pointer;
+  text-align: right;
+  padding-right: 4px;
+  line-height: 1.3;
   overflow: hidden;
   text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  line-height: 1.3;
 }
 
 .property-value-separator {
   color: #d1d5db;
   font-weight: 400;
-  flex-shrink: 0;
 }
 
 .property-value-text {
   color: #374151;
   font-size: 13px;
-  flex: 1;
-  padding-right: 60px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 80px;
+  cursor: help;
 }
 
 /* Missing property styles */
@@ -654,13 +638,9 @@ h2 {
 .property-action-buttons {
   display: flex;
   gap: 4px;
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
   opacity: 0;
   transition: opacity 0.2s;
-  padding-left: 24px;
+  justify-self: end;
 }
 
 .property-action-btn {
@@ -698,4 +678,160 @@ h2 {
 .property-action-btn:active {
   transform: scale(0.9);
 }
+
+/* ============ EVENT TIMELINE TAB STYLES ============ */
+
+/* Timeline display section - Now at top, takes much more space */
+.timeline-display-section {
+  flex: 3;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  margin-bottom: 12px;
+}
+
+/* Event selection section - Now at bottom, smaller and more compact */
+.event-selection-section {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: 120px;
+}
+
+.timeline-events-list {
+  max-height: 100px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.timeline-event-checkbox {
+  margin-right: 8px;
+  cursor: pointer;
+}
+
+.timeline-display {
+  flex: 1;
+  overflow-y: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: white;
+  min-height: 0;
+}
+
+.timeline-display::-webkit-scrollbar {
+  width: 6px;
+}
+
+.timeline-display::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.timeline-display::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+
+.timeline-display::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Timeline beginning marker */
+.timeline-beginning {
+  padding: 10px 12px;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-left: 3px solid #0ea5e9;
+  color: #0369a1;
+  font-size: 12px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  border-radius: 4px;
+}
+
+/* Day separator */
+.timeline-day-separator {
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  border-bottom: 2px solid #5a67d8;
+}
+
+/* Timeline event item */
+.timeline-event-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid #f0f0f0;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.timeline-event-item:last-child {
+  border-bottom: none;
+}
+
+.timeline-event-item:hover {
+  background-color: #e0e7ff;
+  border-left: 3px solid #667eea;
+  padding-left: 9px;
+}
+
+/* Visited state - grey text, normal background */
+.timeline-event-item.visited .timeline-event-name {
+  color: #6b7280;
+}
+
+.timeline-event-item.visited .timeline-event-time {
+  color: #9ca3af;
+}
+
+/* Clicked state - dark background, white text (overrides visited) */
+.timeline-event-item.clicked {
+  background-color: #4b5563;
+  border-left: 3px solid #374151;
+  padding-left: 9px;
+}
+
+.timeline-event-item.clicked .timeline-event-name {
+  color: #ffffff !important;
+  font-weight: 600;
+}
+
+.timeline-event-item.clicked .timeline-event-time {
+  color: #d1d5db !important;
+}
+
+.timeline-event-name {
+  flex: 1;
+  font-size: 13px;
+  color: #374151;
+  font-weight: 500;
+  word-break: break-word;
+}
+
+.timeline-event-time {
+  font-size: 12px;
+  color: #9ca3af;
+  font-family: 'Inter', sans-serif;
+  margin-left: 8px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.timeline-count {
+  font-size: 13px;
+  color: #6b7280;
+  font-weight: 400;
+  margin-left: 4px;
+}
+
 

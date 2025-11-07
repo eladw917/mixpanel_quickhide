@@ -2,43 +2,38 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Mixpanel Quickhide</title>
+  <title>Mixpanel Activity Navigator</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <h1>Mixpanel Quickhide</h1>
+      <h1>Mixpanel Activity Navigator</h1>
       <div class="header-icons">
         <div class="icon-btn-wrapper">
-          <button id="copyAnalyticsIdBtn" class="icon-btn" title="Copy Analytics ID">
+          <button id="copyAnalyticsIdBtn" class="icon-btn" title="Copy Analytics ID" aria-label="Copy Analytics ID">
             <span class="icon">🆔</span>
           </button>
-          <span class="icon-label">Copy ID</span>
         </div>
         <div class="icon-btn-wrapper">
-          <button id="shareUserPageBtn" class="icon-btn" title="Share User Page">
+          <button id="shareUserPageBtn" class="icon-btn" title="Share User Page" aria-label="Share User Page">
             <span class="icon">🔗</span>
           </button>
-          <span class="icon-label">Share</span>
         </div>
         <div class="icon-btn-wrapper">
-          <button id="exportIconBtn" class="icon-btn" title="Export Events">
+          <button id="exportIconBtn" class="icon-btn" title="Export Events" aria-label="Export Events">
             <span class="icon">📥</span>
           </button>
-          <span class="icon-label">Export</span>
         </div>
         <div class="icon-btn-wrapper">
-          <button id="importIconBtn" class="icon-btn" title="Import Events">
+          <button id="importIconBtn" class="icon-btn" title="Import Events" aria-label="Import Events">
             <span class="icon">📤</span>
           </button>
-          <span class="icon-label">Import</span>
         </div>
         <div class="icon-btn-wrapper">
-          <button id="trashIconBtn" class="icon-btn trash-btn" title="Clear All Events">
+          <button id="trashIconBtn" class="icon-btn trash-btn" title="Clear All Events" aria-label="Clear All Events">
             <span class="icon">🗑️</span>
           </button>
-          <span class="icon-label">Clear</span>
         </div>
         <input type="file" id="importFileInput" accept=".txt" style="display: none;">
       </div>
@@ -52,12 +47,13 @@
     <!-- Tab Navigation -->
     <div id="tabNavigation" class="tab-navigation">
       <button class="tab-btn active" data-tab="filterEvents">
-        <span class="tab-icon">🎯</span>
-        <span class="tab-label">Filter Events</span>
+        <span class="tab-label">Feed Cleaner</span>
       </button>
       <button class="tab-btn" data-tab="filterProperties">
-        <span class="tab-icon">👤</span>
-        <span class="tab-label">Filter Properties</span>
+        <span class="tab-label">Property Finder</span>
+      </button>
+      <button class="tab-btn" data-tab="eventTimeline">
+        <span class="tab-label">Quick Timeline</span>
       </button>
     </div>
     
@@ -84,7 +80,7 @@
       <!-- Filter Events Tab -->
       <div id="filterEventsTab" class="tab-content active">
         <div class="section">
-        <h2>Stored Events</h2>
+        <h2>Events to hide from feed</h2>
         <div class="search-container">
           <input 
             type="text" 
@@ -99,7 +95,7 @@
           <span id="searchCount" class="search-count"></span>
         </div>
         <div id="eventsList" class="events-list">
-          <p class="empty-state">No events stored yet. Visit a Mixpanel profile page with hidden events to start.</p>
+          <p class="empty-state">Select events to hide from future activity feed. Either press the "Hide Events" button or write event name manually</p>
         </div>
       </div>
       
@@ -108,7 +104,7 @@
       </div>
       
       <div class="actions">
-        <button id="applyBtn" class="btn btn-primary" disabled>Apply Selected</button>
+        <button id="applyBtn" class="btn btn-primary" disabled>Hide Selected</button>
       </div>
       
       <div class="actions">
@@ -117,7 +113,7 @@
       </div>
       
         <div class="footer">
-          <small>Select events and click "Apply Selected" to hide them in the current profile.</small>
+          <small>Select events and click "Hide Selected" to hide them in the current profile.</small>
         </div>
       </div>
       <!-- End Filter Events Tab -->
@@ -126,7 +122,7 @@
       <div id="filterPropertiesTab" class="tab-content">
         <!-- Section 1: Current Values Display -->
         <div class="section">
-          <h2>Current Property Values</h2>
+          <h2>Highlighted Properties</h2>
           <div id="propertyValuesList" class="property-values-list">
             <p class="empty-state">Check properties below to see their values here.</p>
           </div>
@@ -134,7 +130,7 @@
         
         <!-- Section 2: Property Database -->
         <div class="section" style="margin-top: 16px;">
-          <h2>Stored Properties</h2>
+          <h2>Highlight Properties</h2>
           <div class="search-container">
             <input 
               type="text" 
@@ -154,6 +150,47 @@
         </div>
       </div>
       <!-- End Filter Properties Tab -->
+      
+      <!-- Event Timeline Tab -->
+      <div id="eventTimelineTab" class="tab-content">
+        <!-- Timeline Display (Top) -->
+        <div class="section timeline-display-section">
+          <h2>Timeline <span id="timelineEventCount" class="timeline-count"></span></h2>
+          <div id="timelineDisplay" class="timeline-display">
+            <p class="empty-state">Select events below to see their timeline.</p>
+          </div>
+        </div>
+        
+        <!-- Event Name Selection (Middle) -->
+        <div class="section event-selection-section">
+          <h2>Select events to show on timeline</h2>
+          <div class="search-container">
+            <input 
+              type="text" 
+              id="timelineSearchInput" 
+              class="search-input" 
+              placeholder="Search event names..."
+              autocomplete="off"
+            />
+            <button id="clearTimelineSearchBtn" class="clear-search-btn" title="Clear search" style="display: none;">
+              ✕
+            </button>
+            <span id="timelineSearchCount" class="search-count"></span>
+          </div>
+          <div id="timelineEventsList" class="events-list timeline-events-list">
+            <p class="empty-state">Loading events from activity feed...</p>
+          </div>
+        </div>
+        
+        <!-- Load More Button (Bottom) -->
+        <div style="margin-top: 8px; text-align: center;">
+          <button id="loadMoreEventsBtn" class="btn btn-secondary" style="width: auto; padding: 6px 20px; font-size: 13px;">
+            Load more
+          </button>
+          <div id="loadMoreDateInfo" style="font-size: 11px; color: #6b7280; margin-top: 4px;"></div>
+        </div>
+      </div>
+      <!-- End Event Timeline Tab -->
       
     </div>
   </div>

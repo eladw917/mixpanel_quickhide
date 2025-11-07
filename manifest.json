@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Mixpanel Quickhide",
-  "version": "1.2.0",
-  "description": "Quickly hide events and view user properties in Mixpanel activity feeds",
+  "name": "Mixpanel Activity Navigator",
+  "version": "1.3.0",
+  "description": "Navigate Mixpanel activity feeds efficiently - filter events, track properties, and analyze user timelines",
   "permissions": [
     "storage",
     "activeTab"

@@ -1,6 +1,6 @@
-# Mixpanel Quickhide
+# Mixpanel Activity Navigator
 
-A Chrome extension that helps you quickly hide and manage events across different user profiles in Mixpanel's activity feed.
+A Chrome extension that helps you navigate Mixpanel activity feeds efficiently - filter events, track properties, and analyze user timelines across different profiles.
 
 ## 📋 Table of Contents
 
@@ -25,16 +25,39 @@ This means you have to manually hide the same events over and over again for eac
 
 ## Features
 
+### Feed Cleaner Tab
 ✅ **Automatic Event Detection** - Discovers and saves hidden events from Mixpanel URLs in real-time  
 ✅ **Persistent Storage** - Events are stored locally and persist across sessions  
 ✅ **Quick Selection** - Checkbox interface with "Check All" and "Uncheck All" buttons  
 ✅ **URL Sync** - Checkboxes automatically reflect what's currently hidden in the URL  
 ✅ **Real-Time Updates** - Detects when you hide events in Mixpanel and adds them to the list  
-✅ **Smart Activation** - Only activates on actual user activity feed pages  
 ✅ **Export/Import** - Save events to a shareable `.txt` file and import them later  
 ✅ **Manual Event Addition** - Add events manually if needed, with temporary storage  
 ✅ **Event Management** - Delete individual events from your list  
-✅ **Search & Filter** - Quickly find events with built-in search  
+✅ **Search & Filter** - Quickly find events with built-in search
+
+### Property Finder Tab
+✅ **Automatic Property Discovery** - Finds all user properties on the current profile  
+✅ **Instant Value Display** - Check properties to see their values immediately  
+✅ **Missing Property Detection** - Shows which properties don't exist for current user  
+✅ **Formatted Names** - Displays clean names (e.g., "City" instead of "$city")  
+✅ **Quick Copy** - One-click copy for property names and values  
+✅ **Export/Import** - Share property lists with your team  
+✅ **Smart Search** - Search both original and formatted property names
+
+### Quick Timeline Tab
+✅ **Event Tracking** - Select specific events to track across user journeys  
+✅ **Chronological Timeline** - View selected events in time order with timestamps  
+✅ **Day Separators** - Events grouped by day for easy navigation  
+✅ **Click to Expand** - Click timeline events to open them in Mixpanel's activity feed  
+✅ **Load More** - Load older events with visible start date  
+✅ **Event Counter** - See exactly how many tracked events are displayed  
+✅ **Global Selection** - Event selections persist across all user profiles  
+✅ **Fresh Data** - Always shows current page state, never stale
+
+### General
+✅ **Smart Activation** - Only activates on actual user activity feed pages  
+✅ **Tab System** - Organized interface with easy navigation  
 ✅ **Helpful Feedback** - Clear notifications and status indicators  
 
 ## Installation
@@ -173,6 +196,78 @@ If you need to add an event that hasn't been auto-discovered yet:
 2. If no results found, click **"+ Add manually"** button
 3. The event is added with a `[m]` indicator (manual)
 4. Manual events are temporary - they're converted to auto-discovered after "Apply Selected" if valid
+
+### Quick Timeline Usage
+
+Track specific events across user journeys:
+
+#### Selecting Events to Track
+
+1. Navigate to any user's activity feed
+2. Click the extension icon → **Quick Timeline** tab
+3. See all events from the current page
+4. Use search box to filter event names
+5. Check events you want to track (e.g., `exit_beyond_bp`, `quick_actions_completed`)
+6. Selections save automatically
+
+#### Viewing the Timeline
+
+1. Timeline shows only selected events in chronological order
+2. Events grouped by day with separators
+3. See event count: "Timeline (X events tracked)"
+4. Timeline takes most of the extension space for easy viewing
+
+#### Interacting with Events
+
+1. **Click any event** in the timeline to expand it in Mixpanel's activity feed
+2. Event automatically scrolls into view
+3. Mixpanel's collapsible section opens to show details
+
+#### Loading More Events
+
+1. Click **"Load more since [date]"** button at bottom
+2. Extension clicks Mixpanel's "Show more" button
+3. Timeline refreshes with all loaded events
+4. Button updates with new earliest date
+5. When all events loaded: "All events loaded since [date]"
+
+#### Clearing Selection
+
+1. Click trash icon (🗑️) in header while on Quick Timeline tab
+2. All checkboxes unchecked instantly
+3. Timeline shows empty state
+4. No confirmation needed
+
+#### Cross-User Tracking
+
+1. Select events on User A's profile
+2. Navigate to User B's profile
+3. Same events automatically selected
+4. Timeline shows User B's instances of those events
+5. Selections persist across browser sessions
+
+**Example Workflow:**
+```
+Goal: Track checkout flow errors
+
+1. Open User A's profile
+2. Go to Quick Timeline tab
+3. Search "checkout" or "error"
+4. Check:
+   - checkout_started
+   - payment_failed
+   - checkout_completed
+5. See timeline showing these events
+
+6. Navigate to User B's profile
+7. Open extension → Quick Timeline tab
+8. Same events already checked
+9. See User B's checkout events
+10. Click event to investigate in Mixpanel
+
+11. Need more history? Click "Load more"
+12. Timeline expands with older events
+```
 
 ## How It Works
 
@@ -512,8 +607,28 @@ For issues, questions, or suggestions:
 
 ## Changelog
 
-### Version 1.1.0 (Current)
-- ✅ Rebranded to "Mixpanel Quickhide"
+### Version 1.3.0 (Current)
+- ✅ **Quick Timeline Tab** - Track specific events across user journeys
+- ✅ Chronological timeline view with day separators
+- ✅ Click timeline events to expand in Mixpanel
+- ✅ Load more events with visible start date
+- ✅ Event counter showing tracked instances
+- ✅ Global selection persisting across users
+- ✅ Fresh data always reflecting current page
+- ✅ Search and filter timeline event names
+- ✅ Auto-save selections
+
+### Version 1.2.0
+- ✅ **Property Finder Tab** - Track user properties
+- ✅ Automatic property discovery
+- ✅ Instant value display for selected properties
+- ✅ Missing property detection
+- ✅ Formatted property names
+- ✅ Quick copy for names and values
+- ✅ Export/Import properties
+- ✅ Tab system for organized interface
+
+### Version 1.1.0
 - ✅ Export events to `.txt` file
 - ✅ Import events from `.txt` file (replace or merge)
 - ✅ Manual event addition via search
@@ -547,4 +662,4 @@ Potential features for future versions:
 
 ---
 
-**Made with ❤️ to make Mixpanel workflows more efficient**
+**Made with ❤️ to make Mixpanel activity navigation effortless**
