@@ -10,6 +10,7 @@ A Chrome extension that helps you navigate Mixpanel activity feeds efficiently -
 
 ### 👨‍💻 For Developers
 - **[Development Guide](docs/development/DEVELOPMENT.md)** - Setup and architecture
+- **[Google Analytics Setup](docs/development/GOOGLE_ANALYTICS_SETUP.md)** - GA4 analytics integration
 - **[Future Development](docs/development/FUTURE_DEVELOPMENT.md)** - Complete reference for continuing work
 - **[Deployment Guide](docs/development/DEPLOYMENT_GUIDE.md)** - How to release and distribute
 

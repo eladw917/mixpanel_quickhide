@@ -51,7 +51,8 @@ async function saveDiscoveredEvents(events) {
   
   // Save back to storage
   await chrome.storage.local.set({ hiddenEvents: mergedEvents });
-  
+
+
 }
 
 // Function to parse properties from DOM
@@ -288,11 +289,12 @@ function openEventInFeed(eventName, eventTime) {
 
 // Listen for messages from popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  // Only respond if we're on an activity feed page
-  if (!isOnActivityFeedPage()) {
-    sendResponse({ success: false, error: 'Not on activity feed page' });
-    return true;
-  }
+  try {
+    // Only respond if we're on an activity feed page
+    if (!isOnActivityFeedPage()) {
+      sendResponse({ success: false, error: 'Not on activity feed page' });
+      return true;
+    }
   
   if (request.action === 'applyHiddenEvents') {
     applyHiddenEventsToURL(request.events);
@@ -302,10 +304,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     sendResponse({ events: currentEvents });
   } else if (request.action === 'getAllProperties') {
     const properties = parsePropertiesFromDOM();
+
+
     sendResponse({ properties: properties });
   } else if (request.action === 'getEventDatabase') {
     // Get all events from the activity feed
     const events = parseEventsFromDOM();
+
+
     sendResponse({ events: events });
   } else if (request.action === 'getEarliestEvent') {
     // Get the earliest event info
@@ -321,6 +327,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     sendResponse(result);
   }
   return true;
+  } catch (error) {
+    console.error('[Mixpanel Activity Navigator] Error in message listener:', error);
+
+    sendResponse({ success: false, error: error.message });
+    return true;
+  }
 });
 
 // Function to apply selected events to the URL
@@ -379,7 +391,8 @@ function applyHiddenEventsToURL(eventsToHide) {
   
   // Save current scroll position
   const scrollY = window.scrollY;
-  
+
+
   // Method 1: Update hash directly
   window.location.hash = hashContent;
   

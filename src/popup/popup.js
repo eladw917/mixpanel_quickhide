@@ -5,9 +5,20 @@ let currentTab = null;
 let activeTabName = 'filterEvents'; // Track which tab is currently active
 let eventDatabase = []; // Store all events from activity feed
 let selectedTimelineEvents = []; // Store which event names user wants to track
+let popupOpenTime = null; // Track when popup was opened
+let tabViewCount = 0; // Count how many tabs were viewed
 
 // Initialize popup
 document.addEventListener('DOMContentLoaded', async () => {
+  // Load analytics module (but don't track yet)
+  loadAnalytics().then(() => {
+    if (window.ExtensionAnalytics) {
+      window.ExtensionAnalytics.initialize();
+    }
+  }).catch(err => {
+    console.warn('Analytics failed to load:', err);
+  });
+
   await checkCurrentTab();
   await loadStoredEvents();
   await loadStoredPropertyNames();
@@ -15,7 +26,95 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupEventListeners();
   setupTabNavigation();
   await restoreLastActiveTab();
+  
+  // Track popup_opened after everything is loaded
+  trackPopupOpened();
+  
+  // Set popup open time
+  popupOpenTime = Date.now();
+  
+  // Track popup_closed when window is about to close (browser/tab closed)
+  window.addEventListener('beforeunload', () => {
+    trackPopupClosed('window_closed');
+  });
+  
+  // Track popup_closed when user clicks outside (popup loses focus)
+  window.addEventListener('blur', () => {
+    trackPopupClosed('click_outside');
+  });
 });
+
+// Load analytics module
+function loadAnalytics() {
+  return new Promise((resolve, reject) => {
+    const analyticsScript = document.createElement('script');
+    analyticsScript.src = '../analytics.js';
+    analyticsScript.onload = () => resolve();
+    analyticsScript.onerror = () => reject(new Error('Failed to load analytics.js'));
+    document.head.appendChild(analyticsScript);
+  });
+}
+
+// Track popup opened with properties
+function trackPopupOpened() {
+  if (!window.ExtensionAnalytics) {
+    return;
+  }
+
+  // Get the current tab name
+  const tabName = activeTabName || 'filterEvents';
+
+  // Determine activity type and isActive based on current URL
+  let activityType = 'non_mixpanel';
+  let isActive = false;
+  
+  if (currentTab && currentTab.url) {
+    const url = currentTab.url;
+    
+    if (url.includes('mixpanel.com')) {
+      if (url.includes('/app/profile') && url.includes('distinct_id=')) {
+        activityType = 'activity_feed';
+        // Extension is active only on activity feed with content script loaded
+        const statusIcon = document.getElementById('statusIcon');
+        isActive = statusIcon?.className?.includes('active') || false;
+      } else if (url.includes('/app/users')) {
+        activityType = 'users_page';
+      } else if (url.includes('/app/events') || url.includes('/report/events')) {
+        activityType = 'events_page';
+      } else {
+        activityType = 'mixpanel_general';
+      }
+    }
+  }
+
+  // Track the event with properties
+  window.ExtensionAnalytics.trackEvent('popup_opened', {
+    is_active: isActive,
+    tab_name: tabName,
+    activity_type: activityType
+  });
+}
+
+// Track popup closed with properties
+function trackPopupClosed(method) {
+  if (!window.ExtensionAnalytics) {
+    return;
+  }
+
+  // Get the current tab name
+  const tabName = activeTabName || 'filterEvents';
+
+  // Calculate time opened in seconds
+  const timeOpenedSeconds = popupOpenTime ? Math.round((Date.now() - popupOpenTime) / 1000) : 0;
+
+  // Track the event with properties using beacon (more reliable for unload events)
+  window.ExtensionAnalytics.trackEvent('popup_closed', {
+    tab_name: tabName,
+    method: method,
+    time_opened: timeOpenedSeconds,
+    tabs_viewed: tabViewCount
+  }, true); // Use beacon = true
+}
 
 // Check if current tab is a Mixpanel profile page
 async function checkCurrentTab() {
@@ -326,7 +425,7 @@ function setupTabNavigation() {
 }
 
 // Switch between tabs
-function switchTab(tabName) {
+function switchTab(tabName, method = 'navigation') {
   // Update tab buttons
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.classList.remove('active');
@@ -347,7 +446,22 @@ function switchTab(tabName) {
   
   // Update active tab tracker
   activeTabName = tabName;
-  
+
+  // Increment tab view counter only if extension is active
+  const statusIcon = document.getElementById('statusIcon');
+  const isActive = statusIcon?.className?.includes('active') || false;
+  if (isActive) {
+    tabViewCount++;
+  }
+
+  // Track tab opened event
+  if (window.ExtensionAnalytics) {
+    window.ExtensionAnalytics.trackEvent('tab_opened', {
+      tab_name: tabName,
+      method: method
+    });
+  }
+
   // Save last active tab to storage
   chrome.storage.local.set({ lastActiveTab: tabName });
   
@@ -403,15 +517,15 @@ async function restoreLastActiveTab() {
     const savedTab = result.lastActiveTab || 'filterEvents'; // Default to filterEvents
     
     
-    // Switch to the saved tab (or default)
-    switchTab(savedTab);
+    // Switch to the saved tab (or default) - this is a startup action
+    switchTab(savedTab, 'startup');
     
     // Ensure button states are correct for the active tab
     updateHeaderButtonsForTab(savedTab);
   } catch (error) {
     console.error('[Popup] Error restoring last active tab:', error);
     // Fallback to default if error
-    switchTab('filterEvents');
+    switchTab('filterEvents', 'startup');
     updateHeaderButtonsForTab('filterEvents');
   }
 }
@@ -863,14 +977,14 @@ function setupEventListeners() {
         if (response && response.success) {
           // Clear manual events after applying - they'll be auto-discovered if valid
           await chrome.storage.local.set({ manualEvents: [] });
-          
+
           // Clear search bar
           const searchInput = document.getElementById('searchInput');
           const clearSearchBtn = document.getElementById('clearSearchBtn');
           searchInput.value = '';
           clearSearchBtn.style.display = 'none';
           filterEvents('');
-          
+
           showNotification('Events applied successfully!', 'success');
           // Re-sync checkboxes after applying
           setTimeout(() => syncCheckboxesWithURL(), 500);
@@ -879,7 +993,8 @@ function setupEventListeners() {
         }
       } catch (error) {
         console.error('[Popup] Error applying events:', error);
-        
+
+
         // Check if it's a connection error (content script not loaded)
         if (error.message && error.message.includes('Could not establish connection')) {
           showNotification('Please refresh the Mixpanel page', 'error');
@@ -1334,10 +1449,12 @@ async function exportEvents() {
     // Cleanup
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    
+
+
     showNotification(`${allEvents.length} event${allEvents.length !== 1 ? 's' : ''} exported`, 'success');
   } catch (error) {
     console.error('[Popup] Error exporting events:', error);
+
     showNotification('Error exporting events', 'error');
   }
 }
@@ -1388,13 +1505,15 @@ async function importEvents(fileContent) {
     
     // Reload events
     await loadStoredEvents();
-    
+
+
     showNotification(
       `${uniqueEvents.length} event${uniqueEvents.length !== 1 ? 's' : ''} imported ${replace ? '(replaced)' : '(merged)'}`,
       'success'
     );
   } catch (error) {
     console.error('[Popup] Error importing events:', error);
+
     showNotification('Error importing events', 'error');
   }
 }
@@ -1431,10 +1550,12 @@ async function exportProperties() {
     // Cleanup
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    
+
+
     showNotification(`${selectedProperties.length} propert${selectedProperties.length !== 1 ? 'ies' : 'y'} exported`, 'success');
   } catch (error) {
     console.error('[Popup] Error exporting properties:', error);
+
     showNotification('Error exporting properties', 'error');
   }
 }
@@ -1475,16 +1596,18 @@ async function importProperties(fileContent) {
     
     // Reload properties list
     await loadStoredPropertyNames();
-    
+
     // Reload property values display
     await loadAndDisplayPropertyValues();
-    
+
+
     showNotification(
       `${uniqueProperties.length} propert${uniqueProperties.length !== 1 ? 'ies' : 'y'} imported and selected`,
       'success'
     );
   } catch (error) {
     console.error('[Popup] Error importing properties:', error);
+
     showNotification('Error importing properties', 'error');
   }
 }
