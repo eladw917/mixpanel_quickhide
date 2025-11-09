@@ -5,6 +5,7 @@ let currentTab = null;
 let activeTabName = 'filterEvents'; // Track which tab is currently active
 let eventDatabase = []; // Store all events from activity feed
 let selectedTimelineEvents = []; // Store which event names user wants to track
+let hiddenTimelineEvents = []; // Store hidden event instances (by unique key)
 
 // Initialize popup
 document.addEventListener('DOMContentLoaded', async () => {
@@ -1612,9 +1613,11 @@ async function loadTimelineData() {
   }
   
   // Load saved selections (global, shared across all users)
-  const cached = await chrome.storage.local.get(['selectedTimelineEvents']);
+  const cached = await chrome.storage.local.get(['selectedTimelineEvents', 'hiddenTimelineEvents']);
   const cachedSelected = cached['selectedTimelineEvents'] || [];
+  const cachedHidden = cached['hiddenTimelineEvents'] || [];
   selectedTimelineEvents = cachedSelected;
+  hiddenTimelineEvents = cachedHidden;
   
   // Fetch fresh data from page
   try {
@@ -1709,12 +1712,28 @@ function displayTimelineEventNames() {
 
 // Update selected timeline events
 async function updateSelectedTimelineEvents() {
+  const prevSelectedEvents = [...selectedTimelineEvents];
   const checkboxes = document.querySelectorAll('.timeline-event-checkbox:checked');
   selectedTimelineEvents = Array.from(checkboxes).map(cb => cb.value);
   
+  // Find events that were unchecked (in previous but not in current)
+  const uncheckedEvents = prevSelectedEvents.filter(eventName => 
+    !selectedTimelineEvents.includes(eventName)
+  );
+  
+  // Clear hidden instances for unchecked events
+  if (uncheckedEvents.length > 0) {
+    hiddenTimelineEvents = hiddenTimelineEvents.filter(eventKey => {
+      // Extract event name from key (format: "EventName|||date|||time")
+      const eventName = eventKey.split('|||')[0];
+      return !uncheckedEvents.includes(eventName);
+    });
+  }
+  
   // Save to storage (global, shared across all users)
   await chrome.storage.local.set({
-    selectedTimelineEvents: selectedTimelineEvents
+    selectedTimelineEvents: selectedTimelineEvents,
+    hiddenTimelineEvents: hiddenTimelineEvents
   });
 }
 
@@ -1729,10 +1748,15 @@ function displayTimeline() {
     return;
   }
   
-  // Filter events based on selection
-  const filteredEvents = eventDatabase.filter(event => 
-    selectedTimelineEvents.includes(event.name)
-  );
+  // Filter events based on selection and hidden status
+  const filteredEvents = eventDatabase.filter(event => {
+    if (!selectedTimelineEvents.includes(event.name)) {
+      return false;
+    }
+    // Create unique key for this event instance
+    const eventKey = `${event.name}|||${event.date}|||${event.displayTime || event.time}`;
+    return !hiddenTimelineEvents.includes(eventKey);
+  });
   
   if (filteredEvents.length === 0) {
     timelineDisplay.innerHTML = '<p class="empty-state">No matching events in timeline.</p>';
@@ -1774,7 +1798,6 @@ function displayTimeline() {
     eventsForDay.forEach(event => {
       const eventItem = document.createElement('div');
       eventItem.className = 'timeline-event-item';
-      eventItem.style.cursor = 'pointer';
       
       const nameSpan = document.createElement('span');
       nameSpan.className = 'timeline-event-name';
@@ -1783,6 +1806,17 @@ function displayTimeline() {
       const timeSpan = document.createElement('span');
       timeSpan.className = 'timeline-event-time';
       timeSpan.textContent = event.displayTime || event.time || '';
+      
+      // Delete button
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'timeline-delete-btn';
+      deleteBtn.innerHTML = '×';
+      deleteBtn.title = 'Remove from timeline';
+      deleteBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        await hideTimelineEvent(event);
+      });
       
       // Add click handler to open event in Mixpanel
       eventItem.addEventListener('click', async () => {
@@ -1811,10 +1845,31 @@ function displayTimeline() {
       
       eventItem.appendChild(nameSpan);
       eventItem.appendChild(timeSpan);
+      eventItem.appendChild(deleteBtn);
       timelineDisplay.appendChild(eventItem);
     });
   });
   
+}
+
+// Hide a specific timeline event instance
+async function hideTimelineEvent(event) {
+  // Create unique key for this event instance
+  const eventKey = `${event.name}|||${event.date}|||${event.displayTime || event.time}`;
+  
+  // Add to hidden list if not already there
+  if (!hiddenTimelineEvents.includes(eventKey)) {
+    hiddenTimelineEvents.push(eventKey);
+    
+    // Save to storage
+    await chrome.storage.local.set({
+      hiddenTimelineEvents: hiddenTimelineEvents
+    });
+    
+    
+    // Refresh timeline display
+    displayTimeline();
+  }
 }
 
 // Filter timeline event names based on search
@@ -1845,7 +1900,7 @@ function filterTimelineEventNames(searchTerm) {
 async function clearTimelineSelections() {
   const checkboxes = document.querySelectorAll('.timeline-event-checkbox');
   
-  if (checkboxes.length === 0) {
+  if (checkboxes.length === 0 && hiddenTimelineEvents.length === 0) {
     return;
   }
   
@@ -1854,12 +1909,14 @@ async function clearTimelineSelections() {
     cb.checked = false;
   });
   
-  // Clear selected events
+  // Clear selected events and hidden events
   selectedTimelineEvents = [];
+  hiddenTimelineEvents = [];
   
   // Save to storage (global, shared across all users)
   await chrome.storage.local.set({
-    selectedTimelineEvents: []
+    selectedTimelineEvents: [],
+    hiddenTimelineEvents: []
   });
   
   

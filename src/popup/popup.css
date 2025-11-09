@@ -768,6 +768,7 @@ h2 {
   border-bottom: 1px solid #f0f0f0;
   transition: all 0.2s;
   cursor: pointer;
+  position: relative;
 }
 
 .timeline-event-item:last-child {
@@ -778,6 +779,10 @@ h2 {
   background-color: #e0e7ff;
   border-left: 3px solid #667eea;
   padding-left: 9px;
+}
+
+.timeline-event-item:hover .timeline-delete-btn {
+  opacity: 1;
 }
 
 /* Visited state - grey text, normal background */
@@ -826,6 +831,36 @@ h2 {
   color: #6b7280;
   font-weight: 400;
   margin-left: 4px;
+}
+
+/* Timeline delete button */
+.timeline-delete-btn {
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  padding: 0;
+  line-height: 1;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  margin-left: 8px;
+  opacity: 0;
+}
+
+.timeline-delete-btn:hover {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+.timeline-delete-btn:active {
+  transform: scale(0.9);
 }
 
 
