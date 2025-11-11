@@ -46,8 +46,10 @@ yarn.lock
 coverage/
 .nyc_output/
 
-# Extension data files
+# Extension data files (user exports)
 mixpanel_events.txt
+mixpanel_properties.txt
+timeline_*.txt
 
 # Release packages (if you create distribution ZIPs)
 releases/
