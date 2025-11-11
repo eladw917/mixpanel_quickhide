@@ -20,7 +20,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["*://mixpanel.com/project/*/view/*/app/profile*"],
+      "matches": ["*://mixpanel.com/project/*"],
       "js": ["src/content.js"],
       "run_at": "document_end",
       "all_frames": false
@@ -30,6 +30,12 @@
     "16": "src/assets/icons/icon16.png",
     "48": "src/assets/icons/icon48.png",
     "128": "src/assets/icons/icon128.png"
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["src/assets/fonts/*.ttf", "src/assets/fonts/*.otf", "src/assets/icons/*.svg"],
+      "matches": ["<all_urls>"]
+    }
+  ]
 }
 

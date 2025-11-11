@@ -1,6 +1,39 @@
 /* Mixpanel Activity Navigator - Popup Styles
  * Location: src/popup/popup.css
+ * 
+ * CODING STANDARDS:
+ * - Use SVG icons only - NO EMOJIS in production code
+ * - All icons must be in src/assets/icons/ as SVG files
  */
+
+/* HK Grotesk Font */
+@font-face {
+  font-family: 'HK Grotesk';
+  src: url('../assets/fonts/HKGrotesk-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'HK Grotesk';
+  src: url('../assets/fonts/HKGrotesk-Medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'HK Grotesk';
+  src: url('../assets/fonts/HKGrotesk-SemiBold.otf') format('opentype');
+  font-weight: 600;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'HK Grotesk';
+  src: url('../assets/fonts/HKGrotesk-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+}
 
 * {
   margin: 0;
@@ -8,10 +41,18 @@
   box-sizing: border-box;
 }
 
+/* Ensure consistent font across all elements, especially buttons and inputs */
+button,
+input,
+textarea,
+select {
+  font-family: inherit;
+}
+
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
+  font-family: 'HK Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
   font-size: 14px;
-  color: #333;
+  color: #505055;
   background: #f5f5f5;
   width: 350px;
   height: 550px;
@@ -29,9 +70,29 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 16px;
-  background: #6366f1;
+  padding: 8px 12px;
+  background: #4F45E0;
   color: white;
+}
+
+.header-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.logo-svg {
+  height: 20px;
+  width: 20px;
+  display: block;
+}
+
+.header-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: white;
+  white-space: nowrap;
 }
 
 h1 {
@@ -44,7 +105,7 @@ h1 {
 
 .header-icons {
   display: flex;
-  gap: 4px;
+  gap: 3px;
   align-items: center;
 }
 
@@ -56,9 +117,9 @@ h1 {
 .icon-btn {
   background: rgba(255, 255, 255, 0.35);
   border: none;
-  border-radius: 6px;
-  width: 28px;
-  height: 28px;
+  border-radius: 4px;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -87,56 +148,77 @@ h1 {
   line-height: 1;
 }
 
+.icon-svg {
+  width: 16px;
+  height: 16px;
+  filter: brightness(0) invert(1);
+  display: block;
+}
+
 .icon-btn.trash-btn:hover {
   background: rgba(239, 68, 68, 0.9);
 }
 
 h2 {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
-  margin-bottom: 8px;
-  color: #555;
-}
-
-.status {
-  display: none;
+  margin-bottom: 10px;
+  color: #1f2937;
 }
 
 /* Tab Navigation */
 .tab-navigation {
   display: flex;
-  background: #f9fafb;
-  border-bottom: 2px solid #e5e7eb;
-  padding: 0 8px;
+  background: #f3f4f6;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 8px;
+  gap: 4px;
 }
 
 .tab-btn {
   flex: 1;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 4px;
-  padding: 10px 12px;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
   border: none;
   background: transparent;
+  font-family: 'HK Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.15s;
   position: relative;
   color: #6b7280;
-  font-size: 12px;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -2px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 0;
 }
 
 .tab-btn:hover {
-  background: #f3f4f6;
-  color: #374151;
+  background: #e8e6fc;
+  color: #4F45E0;
+  font-weight: 600;
+  border-radius: 6px;
 }
 
 .tab-btn.active {
-  color: #667eea;
-  background: white;
-  border-bottom-color: #667eea;
+  color: #1f2937;
+  background: #e5e7eb;
+  font-weight: 600;
+  border-radius: 6px;
+}
+
+.tab-icon-svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+  opacity: 0.7;
+}
+
+.tab-btn:hover .tab-icon-svg,
+.tab-btn.active .tab-icon-svg {
+  opacity: 1;
 }
 
 .tab-icon {
@@ -145,10 +227,9 @@ h2 {
 }
 
 .tab-label {
-  font-weight: 500;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
+  font-size: 13px;
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 /* Tab Content */
@@ -165,23 +246,6 @@ h2 {
   display: flex;
 }
 
-.status-icon {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  margin-right: 8px;
-  display: inline-block;
-}
-
-.status-icon.active {
-  background: #22c55e;
-  box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
-}
-
-.status-icon.inactive {
-  background: #94a3b8;
-}
-
 #content {
   flex: 1;
   overflow-y: hidden;
@@ -196,6 +260,10 @@ h2 {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px;
+  background: white;
 }
 
 /* Search container */
@@ -204,21 +272,40 @@ h2 {
   margin-bottom: 8px;
 }
 
+.search-container::before {
+  content: "";
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  background-image: url('../assets/icons/search_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  pointer-events: none;
+  opacity: 0.4;
+}
+
 .search-input {
   width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #d1d5db;
+  padding: 8px 12px 8px 36px;
+  border: 1px solid #e5e7eb;
   border-radius: 6px;
   font-size: 13px;
+  font-family: 'HK Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-weight: 400;
   transition: border-color 0.2s, box-shadow 0.2s;
-  background: white;
+  background: #f9fafb;
   box-sizing: border-box;
 }
 
 .search-input:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: #4F45E0;
+  box-shadow: 0 0 0 1px rgba(79, 69, 224, 0.1);
+  background: #ffffff;
 }
 
 .search-input::placeholder {
@@ -295,17 +382,17 @@ h2 {
 }
 
 .events-list {
-  max-height: 200px;
+  max-height: 280px;
   overflow-y: auto;
-  border: 1px solid #e5e5e5;
-  border-radius: 6px;
-  background: white;
+  border: none;
+  border-radius: 0;
+  background: transparent;
   flex: 1;
 }
 
 /* Smaller list for properties tab to fit both sections */
 #filterPropertiesTab .events-list {
-  max-height: 120px;
+  max-height: 140px;
 }
 
 .empty-state {
@@ -319,11 +406,12 @@ h2 {
 .event-item {
   display: flex;
   align-items: center;
-  padding: 8px 12px;
+  padding: 7px 4px;
   border-bottom: 1px solid #f0f0f0;
   cursor: pointer;
   transition: background-color 0.2s;
   position: relative;
+  background: white;
 }
 
 .event-item:last-child {
@@ -339,18 +427,80 @@ h2 {
   cursor: pointer;
   width: 16px;
   height: 16px;
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1.5px solid #d1d5db;
+  border-radius: 4px;
+  background: white;
+  transition: all 0.15s;
+  position: relative;
+}
+
+.event-checkbox:hover {
+  background: #e8e6fc;
+  border-color: #4F45E0;
+}
+
+.event-checkbox:checked {
+  background: #4F45E0;
+  border-color: #4F45E0;
+}
+
+.event-checkbox:checked::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 2px;
+  width: 3px;
+  height: 7px;
+  border: solid white;
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
 }
 
 .property-checkbox {
   margin-right: 12px;
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1.5px solid #d1d5db;
+  border-radius: 4px;
+  background: white;
+  transition: all 0.15s;
+  position: relative;
+}
+
+.property-checkbox:hover {
+  background: #e8e6fc;
+  border-color: #4F45E0;
+}
+
+.property-checkbox:checked {
+  background: #4F45E0;
+  border-color: #4F45E0;
+}
+
+.property-checkbox:checked::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 2px;
+  width: 3px;
+  height: 7px;
+  border: solid white;
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
 }
 
 .event-item span {
   flex: 1;
   word-break: break-word;
   font-size: 13px;
-  color: #374151;
+  color: #1f2937;
   margin-right: 8px;
+  font-weight: 400;
 }
 
 /* Delete event button */
@@ -412,12 +562,15 @@ h2 {
 .btn {
   flex: 1;
   padding: 8px 16px;
-  border: none;
+  border: 1px solid #d1d5db;
   border-radius: 6px;
   font-size: 13px;
-  font-weight: 500;
+  font-family: 'HK Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-weight: 400;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.15s;
+  background: white;
+  color: #1f2937;
 }
 
 .btn:disabled {
@@ -426,40 +579,44 @@ h2 {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: white;
+  color: #1f2937;
+  border: 1px solid #d1d5db;
 }
 
 .btn-primary:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  background: #e8e6fc;
+  color: #4F45E0;
+  border-color: #d1d5db;
 }
 
 .btn-primary:active:not(:disabled) {
-  transform: translateY(0);
+  background: #ddd6fe;
+  color: #4F45E0;
 }
 
 .btn-secondary {
   background: white;
-  color: #374151;
+  color: #1f2937;
   border: 1px solid #d1d5db;
 }
 
 .btn-secondary:hover {
-  background: #f9fafb;
-  border-color: #9ca3af;
+  background: #e8e6fc;
+  color: #4F45E0;
+  border-color: #d1d5db;
 }
 
 .footer {
-  padding-top: 8px;
+  padding-top: 6px;
   border-top: 1px solid #e5e5e5;
   margin-top: auto;
 }
 
 .footer small {
   color: #6b7280;
-  font-size: 12px;
-  line-height: 1.4;
+  font-size: 10px;
+  line-height: 1.3;
   display: block;
 }
 
@@ -477,15 +634,10 @@ h2 {
   gap: 16px;
 }
 
-.inactive-icon {
-  font-size: 48px;
-  opacity: 0.5;
-}
-
 .inactive-view h3 {
   font-size: 16px;
   font-weight: 600;
-  color: #374151;
+  color: #505055;
   margin: 0;
 }
 
@@ -541,8 +693,9 @@ h2 {
 
 /* Property Values Display */
 .property-values-list {
-  max-height: 200px;
+  max-height: 280px;
   overflow-y: auto;
+  overflow-x: hidden;
   border: 1px solid #e5e5e5;
   border-radius: 6px;
   background: white;
@@ -567,12 +720,13 @@ h2 {
 
 .property-value-item {
   display: grid;
-  grid-template-columns: minmax(120px, auto) auto 1fr auto;
-  padding: 8px 12px;
+  grid-template-columns: auto 4px minmax(100px, 1fr) auto;
+  padding: 6px 8px;
   border-bottom: 1px solid #f0f0f0;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   position: relative;
+  overflow: hidden;
 }
 
 .property-value-item:last-child {
@@ -589,15 +743,16 @@ h2 {
 
 .property-value-name {
   font-weight: 600;
-  color: #667eea;
-  font-size: 13px;
-  word-break: break-word;
-  cursor: pointer;
-  text-align: right;
-  padding-right: 4px;
+  color: #4F45E0;
+  font-size: 12px;
+  cursor: help;
+  text-align: left;
+  padding-right: 0;
   line-height: 1.3;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 120px;
 }
 
 .property-value-separator {
@@ -606,12 +761,12 @@ h2 {
 }
 
 .property-value-text {
-  color: #374151;
-  font-size: 13px;
+  color: #505055;
+  font-size: 12px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  min-width: 80px;
+  max-width: 100%;
   cursor: help;
 }
 
@@ -685,17 +840,18 @@ h2 {
   margin-bottom: 12px;
 }
 
-/* Event selection section - Now at bottom, smaller and more compact */
+/* Event selection section - Now at bottom, increased size */
 .event-selection-section {
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   min-height: 0;
-  max-height: 120px;
+  max-height: 180px;
+  margin-bottom: 4px;
 }
 
 .timeline-events-list {
-  max-height: 100px;
+  max-height: 160px;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -704,6 +860,37 @@ h2 {
 .timeline-event-checkbox {
   margin-right: 8px;
   cursor: pointer;
+  width: 16px;
+  height: 16px;
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1.5px solid #d1d5db;
+  border-radius: 4px;
+  background: white;
+  transition: all 0.15s;
+  position: relative;
+}
+
+.timeline-event-checkbox:hover {
+  background: #e8e6fc;
+  border-color: #4F45E0;
+}
+
+.timeline-event-checkbox:checked {
+  background: #4F45E0;
+  border-color: #4F45E0;
+}
+
+.timeline-event-checkbox:checked::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 2px;
+  width: 3px;
+  height: 7px;
+  border: solid white;
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
 }
 
 .timeline-display {
@@ -748,7 +935,7 @@ h2 {
 /* Day separator */
 .timeline-day-separator {
   padding: 8px 12px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #4F45E0;
   color: white;
   font-weight: 600;
   font-size: 12px;
@@ -757,7 +944,7 @@ h2 {
   position: sticky;
   top: 0;
   z-index: 10;
-  border-bottom: 2px solid #5a67d8;
+  border-bottom: 2px solid #3d36b3;
 }
 
 /* Timeline event item */
@@ -776,8 +963,8 @@ h2 {
 }
 
 .timeline-event-item:hover {
-  background-color: #e0e7ff;
-  border-left: 3px solid #667eea;
+  background-color: #e8e6fc;
+  border-left: 3px solid #4F45E0;
   padding-left: 9px;
 }
 
@@ -813,7 +1000,7 @@ h2 {
 .timeline-event-name {
   flex: 1;
   font-size: 13px;
-  color: #374151;
+  color: #505055;
   font-weight: 500;
   word-break: break-word;
 }

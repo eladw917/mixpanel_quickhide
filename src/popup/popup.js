@@ -1,5 +1,10 @@
 // Popup script for Mixpanel Activity Navigator
 // Location: src/popup/popup.js
+// 
+// CODING STANDARDS:
+// - Use SVG icons only - NO EMOJIS in production code
+// - All icons must be in src/assets/icons/ as SVG files
+// - Reference icons using <img> tags with proper alt text
 
 let currentTab = null;
 let activeTabName = 'filterEvents'; // Track which tab is currently active
@@ -23,8 +28,6 @@ async function checkCurrentTab() {
   const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
   currentTab = tabs[0];
   
-  const statusIcon = document.getElementById('statusIcon');
-  const statusText = document.getElementById('statusText');
   const applyBtn = document.getElementById('applyBtn');
   const content = document.getElementById('content');
   const inactiveView = document.getElementById('inactiveView');
@@ -37,19 +40,48 @@ async function checkCurrentTab() {
   const importIconBtn = document.getElementById('importIconBtn');
   const trashIconBtn = document.getElementById('trashIconBtn');
   
-  // Check if on activity feed page (must have distinct_id in URL)
-  if (currentTab && currentTab.url && 
-      currentTab.url.includes('mixpanel.com/project/') && 
-      currentTab.url.includes('/app/profile') &&
-      currentTab.url.includes('distinct_id=')) {
+  // Check if on any Mixpanel page
+  const isOnMixpanel = currentTab && currentTab.url && 
+                       currentTab.url.includes('mixpanel.com/project/');
+  
+  // First priority: Check for profile sidebar on any Mixpanel page
+  if (isOnMixpanel) {
+    const sidebarCheck = await checkProfileSidebar();
+    console.log('[Mixpanel Hide Events] Sidebar check result:', sidebarCheck);
     
+    if (sidebarCheck && sidebarCheck.visible && sidebarCheck.url) {
+      console.log('[Mixpanel Hide Events] Showing profile sidebar inactive state');
+      // Show profile sidebar inactive state
+      applyBtn.disabled = true;
+      content.style.display = 'none';
+      inactiveView.style.display = 'block';
+      if (tabNavigation) tabNavigation.style.display = 'none';
+      
+      // Disable header buttons
+      if (copyAnalyticsIdBtn) copyAnalyticsIdBtn.disabled = true;
+      if (shareUserPageBtn) shareUserPageBtn.disabled = true;
+      if (exportIconBtn) exportIconBtn.disabled = true;
+      if (importIconBtn) importIconBtn.disabled = true;
+      if (trashIconBtn) trashIconBtn.disabled = true;
+      
+      // Update the UI for this specific state
+      updateSidebarButtonUI(sidebarCheck.url);
+      return;
+    }
+  }
+  
+  // Check if on activity feed page (must have distinct_id in URL)
+  const isOnActivityFeed = currentTab && currentTab.url && 
+                           currentTab.url.includes('mixpanel.com/project/') && 
+                           currentTab.url.includes('/app/profile') &&
+                           currentTab.url.includes('distinct_id=');
+  
+  if (isOnActivityFeed) {
     // Check if content script is loaded
     const isContentScriptLoaded = await checkContentScript();
     
     if (isContentScriptLoaded) {
       // Active state - show full interface
-      statusIcon.className = 'status-icon active';
-      statusText.textContent = 'Activity feed page detected';
       applyBtn.disabled = false;
       content.style.display = 'flex';
       inactiveView.style.display = 'none';
@@ -63,8 +95,6 @@ async function checkCurrentTab() {
       if (trashIconBtn) trashIconBtn.disabled = false;
     } else {
       // Content script not loaded - show warning
-      statusIcon.className = 'status-icon inactive';
-      statusText.textContent = 'Please refresh the page';
       applyBtn.disabled = true;
       content.style.display = 'none';
       inactiveView.style.display = 'none';
@@ -83,7 +113,6 @@ async function checkCurrentTab() {
       warning.style.display = 'block';
       warning.innerHTML = `
         <div class="inactive-content">
-          <div class="inactive-icon">🔄</div>
           <h3>Page Refresh Required</h3>
           <p>The extension was updated. Please refresh the Mixpanel page to activate.</p>
         </div>
@@ -92,8 +121,6 @@ async function checkCurrentTab() {
     }
   } else {
     // Inactive state - show disabled message
-    statusIcon.className = 'status-icon inactive';
-    statusText.textContent = 'Extension Inactive';
     applyBtn.disabled = true;
     content.style.display = 'none';
     inactiveView.style.display = 'block';
@@ -116,7 +143,6 @@ function updateMixpanelButtonText() {
   const openMixpanelBtn = document.getElementById('openMixpanelBtn');
   const goToUsersBtn = document.getElementById('goToUsersBtn');
   const goToEventsBtn = document.getElementById('goToEventsBtn');
-  const inactiveIcon = document.getElementById('inactiveIcon');
   const inactiveTitle = document.getElementById('inactiveTitle');
   const inactiveMessage = document.getElementById('inactiveMessage');
   
@@ -125,10 +151,9 @@ function updateMixpanelButtonText() {
   if (currentTab && currentTab.url && currentTab.url.includes('mixpanel.com/project/')) {
     // Check if already on users page
     if (currentTab.url.includes('/app/users')) {
-      if (inactiveIcon) inactiveIcon.style.display = 'none';
       if (inactiveTitle) {
         inactiveTitle.style.display = 'block';
-        inactiveTitle.textContent = 'How to use';
+        inactiveTitle.textContent = 'Follow instruction to activate';
       }
       if (inactiveMessage) {
         inactiveMessage.style.display = 'block';
@@ -143,10 +168,9 @@ function updateMixpanelButtonText() {
     
     // Check if already on events page
     if (currentTab.url.includes('/app/events')) {
-      if (inactiveIcon) inactiveIcon.style.display = 'none';
       if (inactiveTitle) {
         inactiveTitle.style.display = 'block';
-        inactiveTitle.textContent = 'How to use';
+        inactiveTitle.textContent = 'Follow instruction to activate';
       }
       if (inactiveMessage) {
         inactiveMessage.style.display = 'block';
@@ -160,10 +184,9 @@ function updateMixpanelButtonText() {
     }
     
     // On a project page but not on users or events page - show both navigation buttons
-    if (inactiveIcon) inactiveIcon.style.display = 'none';
     if (inactiveTitle) {
       inactiveTitle.style.display = 'block';
-      inactiveTitle.textContent = 'How to use';
+      inactiveTitle.textContent = 'Follow instruction to activate';
     }
     if (inactiveMessage) {
       inactiveMessage.style.display = 'block';
@@ -189,10 +212,9 @@ function updateMixpanelButtonText() {
   }
   
   // Default state - not in Mixpanel, show only "Open Mixpanel" button
-  if (inactiveIcon) inactiveIcon.style.display = 'block';
   if (inactiveTitle) {
     inactiveTitle.style.display = 'block';
-    inactiveTitle.textContent = 'How to use';
+    inactiveTitle.textContent = 'Follow instruction to activate';
   }
   if (inactiveMessage) {
     inactiveMessage.style.display = 'block';
@@ -220,6 +242,81 @@ async function checkContentScript() {
   } catch (error) {
     return false;
   }
+}
+
+// Check if profile sidebar is visible
+async function checkProfileSidebar() {
+  if (!currentTab) return null;
+  
+  try {
+    const response = await chrome.tabs.sendMessage(currentTab.id, {
+      action: 'checkProfileSidebar'
+    });
+    return response;
+  } catch (error) {
+    return null;
+  }
+}
+
+// Update UI for profile sidebar state
+function updateSidebarButtonUI(profileUrl) {
+  console.log('[Mixpanel Hide Events] updateSidebarButtonUI called with URL:', profileUrl);
+  
+  const inactiveTitle = document.getElementById('inactiveTitle');
+  const inactiveMessage = document.getElementById('inactiveMessage');
+  const openMixpanelBtn = document.getElementById('openMixpanelBtn');
+  const goToUsersBtn = document.getElementById('goToUsersBtn');
+  const goToEventsBtn = document.getElementById('goToEventsBtn');
+  
+  if (inactiveTitle) {
+    inactiveTitle.style.display = 'block';
+    inactiveTitle.textContent = 'Follow instruction to activate';
+  }
+  if (inactiveMessage) {
+    inactiveMessage.style.display = 'block';
+    inactiveMessage.innerHTML = 'Open this profile in full view to use the extension';
+  }
+  
+  // Show only the main button with new text
+  if (openMixpanelBtn) {
+    openMixpanelBtn.style.display = 'block';
+    openMixpanelBtn.disabled = false;
+    openMixpanelBtn.style.opacity = '1';
+    openMixpanelBtn.style.cursor = 'pointer';
+    
+    // Remove old event listeners by cloning
+    const newButton = openMixpanelBtn.cloneNode(true);
+    openMixpanelBtn.parentNode.replaceChild(newButton, openMixpanelBtn);
+    
+    // Update button text after cloning
+    const btnText = newButton.querySelector('#openMixpanelBtnText');
+    if (btnText) {
+      btnText.textContent = 'Go to activity feed';
+    }
+    
+    // Add new click handler
+    newButton.addEventListener('click', () => {
+      console.log('[Mixpanel Hide Events] Button clicked, navigating to:', profileUrl);
+      console.log('[Mixpanel Hide Events] Current tab:', currentTab);
+      
+      if (currentTab && currentTab.id && profileUrl) {
+        chrome.tabs.update(currentTab.id, { url: profileUrl }, (tab) => {
+          console.log('[Mixpanel Hide Events] Navigation result:', tab);
+          window.close(); // Close the popup after navigation
+        });
+      } else {
+        console.error('[Mixpanel Hide Events] Missing required data:', {
+          hasTab: !!currentTab,
+          tabId: currentTab?.id,
+          hasUrl: !!profileUrl
+        });
+      }
+    });
+  }
+  
+  // Hide other navigation buttons
+  if (goToUsersBtn) goToUsersBtn.style.display = 'none';
+  if (goToEventsBtn) goToEventsBtn.style.display = 'none';
 }
 
 // Load stored events from chrome.storage
@@ -375,10 +472,10 @@ function updateHeaderButtonsForTab(tabName) {
   const importBtn = document.getElementById('importIconBtn');
   
   if (tabName === 'eventTimeline') {
-    // Disable Export/Import on timeline tab
+    // Enable Export but disable Import on timeline tab
     if (exportBtn) {
-      exportBtn.disabled = true;
-      exportBtn.style.opacity = '0.3';
+      exportBtn.disabled = false;
+      exportBtn.style.opacity = '1';
     }
     if (importBtn) {
       importBtn.disabled = true;
@@ -498,7 +595,11 @@ async function displayPropertyNames(propertyNames, selectedProperties) {
     // Copy button
     const copyBtn = document.createElement('button');
     copyBtn.className = 'delete-event-btn';
-    copyBtn.innerHTML = '📋';
+    const copyIcon = document.createElement('img');
+    copyIcon.src = '../assets/icons/content_copy_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg';
+    copyIcon.alt = 'Copy';
+    copyIcon.style.cssText = 'width: 14px; height: 14px;';
+    copyBtn.appendChild(copyIcon);
     copyBtn.title = 'Copy property name';
     copyBtn.style.opacity = '0';
     copyBtn.addEventListener('click', async (e) => {
@@ -706,8 +807,9 @@ function displayPropertyValues(allProperties, selectedProperties) {
     
     const nameSpan = document.createElement('span');
     nameSpan.className = 'property-value-name';
-    nameSpan.textContent = formatPropertyName(propName);
-    nameSpan.title = propName; // Show original name on hover
+    const formattedName = formatPropertyName(propName);
+    nameSpan.textContent = formattedName;
+    nameSpan.title = formattedName; // Show full formatted name on hover
     
     const separator = document.createElement('span');
     separator.className = 'property-value-separator';
@@ -727,7 +829,11 @@ function displayPropertyValues(allProperties, selectedProperties) {
     // Copy button
     const copyBtn = document.createElement('button');
     copyBtn.className = 'property-action-btn copy-btn';
-    copyBtn.innerHTML = '📋';
+    const copyIcon = document.createElement('img');
+    copyIcon.src = '../assets/icons/content_copy_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg';
+    copyIcon.alt = 'Copy';
+    copyIcon.style.cssText = 'width: 14px; height: 14px;';
+    copyBtn.appendChild(copyIcon);
     copyBtn.title = 'Copy value';
     copyBtn.addEventListener('click', async (e) => {
       e.preventDefault();
@@ -1049,6 +1155,8 @@ function setupEventListeners() {
   document.getElementById('exportIconBtn').addEventListener('click', async () => {
     if (activeTabName === 'filterProperties') {
       await exportProperties();
+    } else if (activeTabName === 'eventTimeline') {
+      await exportTimeline();
     } else {
       await exportEvents();
     }
@@ -1922,6 +2030,102 @@ async function clearTimelineSelections() {
   
   // Update timeline display (will show empty state)
   displayTimeline();
+}
+
+// Export timeline events to a .txt file
+async function exportTimeline() {
+  try {
+    // Get user ID from URL
+    if (!currentTab || !currentTab.url) {
+      showNotification('No active tab found', 'error');
+      return;
+    }
+    
+    const url = currentTab.url;
+    const match = url.match(/distinct_id=([^&]+)/);
+    
+    if (!match || !match[1]) {
+      showNotification('No user ID found in URL', 'error');
+      return;
+    }
+    
+    const userId = decodeURIComponent(match[1]);
+    
+    // Check if there are selected events
+    if (selectedTimelineEvents.length === 0) {
+      showNotification('No events selected to export', 'error');
+      return;
+    }
+    
+    // Filter events based on selection and hidden status
+    const filteredEvents = eventDatabase.filter(event => {
+      if (!selectedTimelineEvents.includes(event.name)) {
+        return false;
+      }
+      // Create unique key for this event instance
+      const eventKey = `${event.name}|||${event.date}|||${event.displayTime || event.time}`;
+      return !hiddenTimelineEvents.includes(eventKey);
+    });
+    
+    if (filteredEvents.length === 0) {
+      showNotification('No events in timeline to export', 'error');
+      return;
+    }
+    
+    // Build the export content
+    let content = `user_id: ${userId}\n\n`;
+    
+    // Group events by date
+    const eventsByDate = {};
+    filteredEvents.forEach(event => {
+      const date = event.date || 'Unknown Date';
+      if (!eventsByDate[date]) {
+        eventsByDate[date] = [];
+      }
+      eventsByDate[date].push(event);
+    });
+    
+    // Sort dates (keep the order as displayed)
+    const dates = Object.keys(eventsByDate);
+    
+    // Build content with date separators
+    dates.forEach((date, index) => {
+      content += `----${date}----\n`;
+      
+      const eventsForDay = eventsByDate[date];
+      
+      // Add each event with time and name
+      eventsForDay.forEach(event => {
+        const time = event.displayTime || event.time || '';
+        content += `${time} ${event.name}\n`;
+      });
+      
+      // Add blank line between dates (except after last date)
+      if (index < dates.length - 1) {
+        content += '\n';
+      }
+    });
+    
+    // Create blob and download
+    const blob = new Blob([content], { type: 'text/plain' });
+    const downloadUrl = URL.createObjectURL(blob);
+    
+    // Create temporary download link
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = `timeline_${userId.replace(/[^a-zA-Z0-9]/g, '_')}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    
+    // Cleanup
+    document.body.removeChild(a);
+    URL.revokeObjectURL(downloadUrl);
+    
+    showNotification(`Timeline exported (${filteredEvents.length} events)`, 'success');
+  } catch (error) {
+    console.error('[Popup] Error exporting timeline:', error);
+    showNotification('Error exporting timeline', 'error');
+  }
 }
 
 // Show notification (disabled)

@@ -286,9 +286,79 @@ function openEventInFeed(eventName, eventTime) {
   }
 }
 
+// Function to check if profile sidebar modal is visible
+function checkProfileSidebar() {
+  try {
+    const profileSidebar = document.querySelector('profile-sidebar');
+    console.log('[Mixpanel Hide Events] Profile sidebar element found:', !!profileSidebar);
+    
+    if (!profileSidebar) {
+      console.log('[Mixpanel Hide Events] No profile-sidebar element in DOM');
+      return { visible: false };
+    }
+    
+    // Check if the sidebar is actually visible (not hidden)
+    const style = window.getComputedStyle(profileSidebar);
+    const isVisible = style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+    console.log('[Mixpanel Hide Events] Profile sidebar visible:', isVisible, 'display:', style.display, 'visibility:', style.visibility);
+    
+    if (!isVisible) {
+      console.log('[Mixpanel Hide Events] Profile sidebar exists but is not visible');
+      return { visible: false };
+    }
+    
+    // Find the expand button with the URL - it's in slot="header-actions"
+    const expandButton = profileSidebar.querySelector('mp-button[slot="header-actions"][icon="expand"]');
+    console.log('[Mixpanel Hide Events] Expand button found:', !!expandButton);
+    
+    if (!expandButton) {
+      console.log('[Mixpanel Hide Events] No expand button found, trying alternate selector');
+      // Try without the slot attribute
+      const altExpandButton = profileSidebar.querySelector('mp-button[icon="expand"]');
+      console.log('[Mixpanel Hide Events] Alternate expand button found:', !!altExpandButton);
+      
+      if (!altExpandButton) {
+        return { visible: true, url: null };
+      }
+      
+      const url = altExpandButton.getAttribute('href');
+      console.log('[Mixpanel Hide Events] Alternate expand button href:', url);
+      
+      const fullUrl = url ? window.location.origin + url : null;
+      console.log('[Mixpanel Hide Events] Full URL:', fullUrl);
+      
+      return { 
+        visible: true, 
+        url: fullUrl
+      };
+    }
+    
+    const url = expandButton.getAttribute('href');
+    console.log('[Mixpanel Hide Events] Expand button href:', url);
+    
+    const fullUrl = url ? window.location.origin + url : null;
+    console.log('[Mixpanel Hide Events] Full URL:', fullUrl);
+    
+    return { 
+      visible: true, 
+      url: fullUrl
+    };
+  } catch (error) {
+    console.error('[Mixpanel Hide Events] Error checking profile sidebar:', error);
+    return { visible: false };
+  }
+}
+
 // Listen for messages from popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  // Only respond if we're on an activity feed page
+  // Check for profile sidebar works on any Mixpanel page
+  if (request.action === 'checkProfileSidebar') {
+    const result = checkProfileSidebar();
+    sendResponse(result);
+    return true;
+  }
+  
+  // Only respond if we're on an activity feed page for other actions
   if (!isOnActivityFeedPage()) {
     sendResponse({ success: false, error: 'Not on activity feed page' });
     return true;

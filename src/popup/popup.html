@@ -1,4 +1,13 @@
 <!DOCTYPE html>
+<!-- 
+  Mixpanel Activity Navigator - Popup HTML
+  Location: src/popup/popup.html
+  
+  CODING STANDARDS:
+  - Use SVG icons only - NO EMOJIS in production code
+  - All icons must be in src/assets/icons/ as SVG files
+  - Reference icons using <img> tags with proper alt text
+-->
 <html>
 <head>
   <meta charset="UTF-8">
@@ -8,59 +17,59 @@
 <body>
   <div class="container">
     <div class="header">
-      <h1>Mixpanel Activity Navigator</h1>
+      <div class="header-logo">
+        <img src="../assets/icons/mixpanel.svg" alt="Mixpanel" class="logo-svg">
+        <span class="header-title">Activity Navigator</span>
+      </div>
       <div class="header-icons">
         <div class="icon-btn-wrapper">
           <button id="copyAnalyticsIdBtn" class="icon-btn" title="Copy Analytics ID" aria-label="Copy Analytics ID">
-            <span class="icon">🆔</span>
+            <img src="../assets/icons/person_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Person" class="icon-svg">
           </button>
         </div>
         <div class="icon-btn-wrapper">
           <button id="shareUserPageBtn" class="icon-btn" title="Share User Page" aria-label="Share User Page">
-            <span class="icon">🔗</span>
+            <img src="../assets/icons/link_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Link" class="icon-svg">
           </button>
         </div>
         <div class="icon-btn-wrapper">
           <button id="exportIconBtn" class="icon-btn" title="Export Events" aria-label="Export Events">
-            <span class="icon">📥</span>
+            <img src="../assets/icons/file_save_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Export" class="icon-svg">
           </button>
         </div>
         <div class="icon-btn-wrapper">
           <button id="importIconBtn" class="icon-btn" title="Import Events" aria-label="Import Events">
-            <span class="icon">📤</span>
+            <img src="../assets/icons/file_open_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Import" class="icon-svg">
           </button>
         </div>
         <div class="icon-btn-wrapper">
           <button id="trashIconBtn" class="icon-btn trash-btn" title="Clear All Events" aria-label="Clear All Events">
-            <span class="icon">🗑️</span>
+            <img src="../assets/icons/delete_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Delete" class="icon-svg">
           </button>
         </div>
         <input type="file" id="importFileInput" accept=".txt" style="display: none;">
       </div>
     </div>
     
-    <div id="status" class="status">
-      <span id="statusIcon">●</span>
-      <span id="statusText">Checking...</span>
-    </div>
-    
     <!-- Tab Navigation -->
     <div id="tabNavigation" class="tab-navigation">
       <button class="tab-btn active" data-tab="filterEvents">
+        <img src="../assets/icons/mop_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="" class="tab-icon-svg">
         <span class="tab-label">Feed Cleaner</span>
       </button>
       <button class="tab-btn" data-tab="filterProperties">
+        <img src="../assets/icons/map_search_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="" class="tab-icon-svg">
         <span class="tab-label">Property Finder</span>
       </button>
       <button class="tab-btn" data-tab="eventTimeline">
+        <img src="../assets/icons/timeline_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="" class="tab-icon-svg">
         <span class="tab-label">Quick Timeline</span>
       </button>
     </div>
     
     <div id="inactiveView" class="inactive-view" style="display: none;">
       <div class="inactive-content">
-        <div id="inactiveIcon" class="inactive-icon">🔒</div>
-        <h3 id="inactiveTitle">How to use</h3>
+        <h3 id="inactiveTitle">Follow instruction to activate</h3>
         <p id="inactiveMessage">Go to Mixpanel, then click the <strong>"Users"</strong> or <strong>"Events"</strong> button on the left pane</p>
         <div class="inactive-buttons">
           <button id="openMixpanelBtn" class="btn btn-primary">
@@ -90,7 +99,7 @@
             autocomplete="off"
           />
           <button id="clearSearchBtn" class="clear-search-btn" title="Clear search" style="display: none;">
-            ✕
+            <img src="../assets/icons/cancel_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Clear" style="width: 14px; height: 14px;">
           </button>
           <span id="searchCount" class="search-count"></span>
         </div>
@@ -129,7 +138,7 @@
         </div>
         
         <!-- Section 2: Property Database -->
-        <div class="section" style="margin-top: 16px;">
+        <div class="section" style="margin-top: 8px;">
           <h2>Highlight Properties</h2>
           <div class="search-container">
             <input 
@@ -140,13 +149,17 @@
               autocomplete="off"
             />
             <button id="clearPropertySearchBtn" class="clear-search-btn" title="Clear search" style="display: none;">
-              ✕
+              <img src="../assets/icons/cancel_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Clear" style="width: 14px; height: 14px;">
             </button>
             <span id="propertySearchCount" class="search-count"></span>
           </div>
           <div id="propertiesList" class="events-list">
             <p class="empty-state">No properties stored yet. Visit a Mixpanel profile page to start.</p>
           </div>
+        </div>
+        
+        <div class="footer">
+          <small>Check properties to highlight them at the top. Property values update automatically for each profile.</small>
         </div>
       </div>
       <!-- End Filter Properties Tab -->
@@ -173,7 +186,7 @@
               autocomplete="off"
             />
             <button id="clearTimelineSearchBtn" class="clear-search-btn" title="Clear search" style="display: none;">
-              ✕
+              <img src="../assets/icons/cancel_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Clear" style="width: 14px; height: 14px;">
             </button>
             <span id="timelineSearchCount" class="search-count"></span>
           </div>
@@ -183,7 +196,7 @@
         </div>
         
         <!-- Load More Button (Bottom) -->
-        <div style="margin-top: 8px; text-align: center;">
+        <div style="margin-top: 4px; text-align: center;">
           <button id="loadMoreEventsBtn" class="btn btn-secondary" style="width: auto; padding: 6px 20px; font-size: 13px;">
             Load more
           </button>
