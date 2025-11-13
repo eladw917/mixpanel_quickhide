@@ -40,43 +40,11 @@ async function checkCurrentTab() {
   const importIconBtn = document.getElementById('importIconBtn');
   const trashIconBtn = document.getElementById('trashIconBtn');
   
-  // Check if on any Mixpanel page
-  const isOnMixpanel = currentTab && currentTab.url && 
-                       currentTab.url.includes('mixpanel.com/project/');
-  
-  // First priority: Check for profile sidebar on any Mixpanel page
-  if (isOnMixpanel) {
-    const sidebarCheck = await checkProfileSidebar();
-    console.log('[Mixpanel Hide Events] Sidebar check result:', sidebarCheck);
-    
-    if (sidebarCheck && sidebarCheck.visible && sidebarCheck.url) {
-      console.log('[Mixpanel Hide Events] Showing profile sidebar inactive state');
-      // Show profile sidebar inactive state
-      applyBtn.disabled = true;
-      content.style.display = 'none';
-      inactiveView.style.display = 'block';
-      if (tabNavigation) tabNavigation.style.display = 'none';
-      
-      // Disable header buttons
-      if (copyAnalyticsIdBtn) copyAnalyticsIdBtn.disabled = true;
-      if (shareUserPageBtn) shareUserPageBtn.disabled = true;
-      if (exportIconBtn) exportIconBtn.disabled = true;
-      if (importIconBtn) importIconBtn.disabled = true;
-      if (trashIconBtn) trashIconBtn.disabled = true;
-      
-      // Update the UI for this specific state
-      updateSidebarButtonUI(sidebarCheck.url);
-      return;
-    }
-  }
-  
   // Check if on activity feed page (must have distinct_id in URL)
-  const isOnActivityFeed = currentTab && currentTab.url && 
-                           currentTab.url.includes('mixpanel.com/project/') && 
-                           currentTab.url.includes('/app/profile') &&
-                           currentTab.url.includes('distinct_id=');
-  
-  if (isOnActivityFeed) {
+  if (currentTab && currentTab.url && 
+      currentTab.url.includes('mixpanel.com/project/') && 
+      currentTab.url.includes('/app/profile') &&
+      currentTab.url.includes('distinct_id=')) {
     // Check if content script is loaded
     const isContentScriptLoaded = await checkContentScript();
     
@@ -242,81 +210,6 @@ async function checkContentScript() {
   } catch (error) {
     return false;
   }
-}
-
-// Check if profile sidebar is visible
-async function checkProfileSidebar() {
-  if (!currentTab) return null;
-  
-  try {
-    const response = await chrome.tabs.sendMessage(currentTab.id, {
-      action: 'checkProfileSidebar'
-    });
-    return response;
-  } catch (error) {
-    return null;
-  }
-}
-
-// Update UI for profile sidebar state
-function updateSidebarButtonUI(profileUrl) {
-  console.log('[Mixpanel Hide Events] updateSidebarButtonUI called with URL:', profileUrl);
-  
-  const inactiveTitle = document.getElementById('inactiveTitle');
-  const inactiveMessage = document.getElementById('inactiveMessage');
-  const openMixpanelBtn = document.getElementById('openMixpanelBtn');
-  const goToUsersBtn = document.getElementById('goToUsersBtn');
-  const goToEventsBtn = document.getElementById('goToEventsBtn');
-  
-  if (inactiveTitle) {
-    inactiveTitle.style.display = 'block';
-    inactiveTitle.textContent = 'Follow instruction to activate';
-  }
-  if (inactiveMessage) {
-    inactiveMessage.style.display = 'block';
-    inactiveMessage.innerHTML = 'Open this profile in full view to use the extension';
-  }
-  
-  // Show only the main button with new text
-  if (openMixpanelBtn) {
-    openMixpanelBtn.style.display = 'block';
-    openMixpanelBtn.disabled = false;
-    openMixpanelBtn.style.opacity = '1';
-    openMixpanelBtn.style.cursor = 'pointer';
-    
-    // Remove old event listeners by cloning
-    const newButton = openMixpanelBtn.cloneNode(true);
-    openMixpanelBtn.parentNode.replaceChild(newButton, openMixpanelBtn);
-    
-    // Update button text after cloning
-    const btnText = newButton.querySelector('#openMixpanelBtnText');
-    if (btnText) {
-      btnText.textContent = 'Go to activity feed';
-    }
-    
-    // Add new click handler
-    newButton.addEventListener('click', () => {
-      console.log('[Mixpanel Hide Events] Button clicked, navigating to:', profileUrl);
-      console.log('[Mixpanel Hide Events] Current tab:', currentTab);
-      
-      if (currentTab && currentTab.id && profileUrl) {
-        chrome.tabs.update(currentTab.id, { url: profileUrl }, (tab) => {
-          console.log('[Mixpanel Hide Events] Navigation result:', tab);
-          window.close(); // Close the popup after navigation
-        });
-      } else {
-        console.error('[Mixpanel Hide Events] Missing required data:', {
-          hasTab: !!currentTab,
-          tabId: currentTab?.id,
-          hasUrl: !!profileUrl
-        });
-      }
-    });
-  }
-  
-  // Hide other navigation buttons
-  if (goToUsersBtn) goToUsersBtn.style.display = 'none';
-  if (goToEventsBtn) goToEventsBtn.style.display = 'none';
 }
 
 // Load stored events from chrome.storage

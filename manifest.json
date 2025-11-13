@@ -20,7 +20,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["*://mixpanel.com/project/*"],
+      "matches": ["*://mixpanel.com/project/*/view/*/app/profile*"],
       "js": ["src/content.js"],
       "run_at": "document_end",
       "all_frames": false
