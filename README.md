@@ -129,7 +129,7 @@ For help:
 
 ---
 
-**Version:** 1.2.0  
+**Version:** 1.3.1  
 **Status:** Production Ready ✅  
 **Made with ❤️ to make Mixpanel workflows more efficient**
 

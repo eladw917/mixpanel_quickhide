@@ -54,6 +54,7 @@ timeline_*.txt
 # Release packages (if you create distribution ZIPs)
 releases/
 *.crx
+RELEASE_NOTES_v*.md
 
 # Development notes (optional - uncomment if you don't want these in git)
 # *_NOTES.md
