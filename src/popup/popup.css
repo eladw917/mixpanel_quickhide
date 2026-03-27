@@ -422,7 +422,10 @@ h2 {
   background-color: #f9fafb;
 }
 
-.event-checkbox {
+/* Shared checkbox styles */
+.event-checkbox,
+.property-checkbox,
+.timeline-event-checkbox {
   margin-right: 12px;
   cursor: pointer;
   width: 16px;
@@ -436,53 +439,23 @@ h2 {
   position: relative;
 }
 
-.event-checkbox:hover {
+.event-checkbox:hover,
+.property-checkbox:hover,
+.timeline-event-checkbox:hover {
   background: #e8e6fc;
   border-color: #4F45E0;
 }
 
-.event-checkbox:checked {
+.event-checkbox:checked,
+.property-checkbox:checked,
+.timeline-event-checkbox:checked {
   background: #4F45E0;
   border-color: #4F45E0;
 }
 
-.event-checkbox:checked::after {
-  content: "";
-  position: absolute;
-  left: 5px;
-  top: 2px;
-  width: 3px;
-  height: 7px;
-  border: solid white;
-  border-width: 0 1.5px 1.5px 0;
-  transform: rotate(45deg);
-}
-
-.property-checkbox {
-  margin-right: 12px;
-  cursor: pointer;
-  width: 16px;
-  height: 16px;
-  appearance: none;
-  -webkit-appearance: none;
-  border: 1.5px solid #d1d5db;
-  border-radius: 4px;
-  background: white;
-  transition: all 0.15s;
-  position: relative;
-}
-
-.property-checkbox:hover {
-  background: #e8e6fc;
-  border-color: #4F45E0;
-}
-
-.property-checkbox:checked {
-  background: #4F45E0;
-  border-color: #4F45E0;
-}
-
-.property-checkbox:checked::after {
+.event-checkbox:checked::after,
+.property-checkbox:checked::after,
+.timeline-event-checkbox:checked::after {
   content: "";
   position: absolute;
   left: 5px;
@@ -859,38 +832,6 @@ h2 {
 
 .timeline-event-checkbox {
   margin-right: 8px;
-  cursor: pointer;
-  width: 16px;
-  height: 16px;
-  appearance: none;
-  -webkit-appearance: none;
-  border: 1.5px solid #d1d5db;
-  border-radius: 4px;
-  background: white;
-  transition: all 0.15s;
-  position: relative;
-}
-
-.timeline-event-checkbox:hover {
-  background: #e8e6fc;
-  border-color: #4F45E0;
-}
-
-.timeline-event-checkbox:checked {
-  background: #4F45E0;
-  border-color: #4F45E0;
-}
-
-.timeline-event-checkbox:checked::after {
-  content: "";
-  position: absolute;
-  left: 5px;
-  top: 2px;
-  width: 3px;
-  height: 7px;
-  border: solid white;
-  border-width: 0 1.5px 1.5px 0;
-  transform: rotate(45deg);
 }
 
 .timeline-display {
