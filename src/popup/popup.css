@@ -166,23 +166,24 @@ h2 {
   color: #1f2937;
 }
 
-/* Tab Navigation */
+/* Tab Navigation — 2×2 grid so four labels fit at 350px without truncation */
 .tab-navigation {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 8px;
   background: #f3f4f6;
   border-bottom: 1px solid #e5e7eb;
-  padding: 8px;
-  gap: 4px;
+  padding: 8px 10px;
 }
 
 .tab-btn {
-  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 8px 12px;
+  gap: 4px;
+  padding: 8px 6px;
   border: none;
   background: transparent;
   font-family: 'HK Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -190,7 +191,7 @@ h2 {
   transition: all 0.15s;
   position: relative;
   color: #6b7280;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   border-radius: 0;
 }
@@ -207,6 +208,11 @@ h2 {
   background: #e5e7eb;
   font-weight: 600;
   border-radius: 6px;
+}
+
+.tab-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .tab-icon-svg {
@@ -227,9 +233,35 @@ h2 {
 }
 
 .tab-label {
-  font-size: 13px;
+  font-size: 11px;
   text-transform: none;
   letter-spacing: 0;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.tab-inactive-cta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.tab-inactive-cta-text {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.tab-inactive-cta-btn {
+  flex: none;
+  width: auto;
+  padding: 4px 10px;
+  font-size: 12px;
 }
 
 /* Tab Content */
@@ -961,8 +993,9 @@ h2 {
   margin-left: 4px;
 }
 
-/* Timeline delete button */
-.timeline-delete-btn {
+/* Timeline action buttons (delete + collapse) */
+.timeline-delete-btn,
+.timeline-collapse-btn {
   width: 20px;
   height: 20px;
   border: none;
@@ -978,8 +1011,15 @@ h2 {
   line-height: 1;
   transition: all 0.2s;
   flex-shrink: 0;
-  margin-left: 8px;
   opacity: 0;
+}
+
+.timeline-delete-btn {
+  margin-left: 8px;
+}
+
+.timeline-collapse-btn {
+  margin-left: 4px;
 }
 
 .timeline-delete-btn:hover {
@@ -987,8 +1027,238 @@ h2 {
   color: #ef4444;
 }
 
-.timeline-delete-btn:active {
+/* Timeline header with collapse all button */
+.timeline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.timeline-header h2 {
+  margin-bottom: 0;
+}
+
+.btn-collapse-all {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background: white;
+  color: #6b7280;
+  font-size: 11px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.btn-collapse-all:hover {
+  background: #e8e6fc;
+  color: #4F45E0;
+  border-color: #4F45E0;
+}
+
+/* Timeline read state */
+.timeline-event-item.read .timeline-event-name {
+  color: #9ca3af;
+}
+
+.timeline-event-item.read .timeline-event-time {
+  color: #d1d5db;
+}
+
+/* Timeline expanded state */
+.timeline-event-item.expanded {
+  border-left: 3px solid #22c55e;
+  padding-left: 9px;
+  background: #f0fdf4;
+}
+
+.timeline-event-item.expanded .timeline-collapse-btn {
+  opacity: 1;
+}
+
+/* Clicked overrides read styling */
+.timeline-event-item.clicked .timeline-event-name {
+  color: #ffffff !important;
+}
+
+.timeline-event-item.clicked .timeline-event-time {
+  color: #d1d5db !important;
+}
+
+.timeline-collapse-btn:hover {
+  background: #e5e7eb;
+  color: #4b5563;
+}
+
+.timeline-event-item:hover .timeline-collapse-btn {
+  opacity: 0.5;
+}
+
+.timeline-event-item.expanded .timeline-collapse-btn {
+  opacity: 1;
+}
+
+.timeline-delete-btn:active,
+.timeline-collapse-btn:active {
   transform: scale(0.9);
+}
+
+/* ============ BOOKMARKS TAB STYLES ============ */
+
+.bookmarks-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.bookmarks-header h2 {
+  margin-bottom: 0;
+}
+
+.bookmarks-cta-btn {
+  width: auto;
+  flex: none;
+  padding: 5px 10px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.bookmarks-search-container {
+  margin-bottom: 8px;
+}
+
+.bookmarks-list {
+  max-height: 420px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.bookmarks-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.bookmarks-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.bookmarks-list::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+
+.bookmark-item {
+  padding: 8px;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background-color 0.15s;
+}
+
+.bookmark-item:last-child {
+  border-bottom: none;
+}
+
+.bookmark-item:hover {
+  background-color: #f9fafb;
+}
+
+.bookmark-id-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bookmark-id-row:hover {
+  background-color: #e8e6fc;
+  border-radius: 4px;
+  margin: -2px -4px;
+  padding: 2px 4px;
+}
+
+.bookmark-id {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+  color: #4F45E0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bookmark-date {
+  font-size: 11px;
+  color: #9ca3af;
+  white-space: nowrap;
+}
+
+.bookmark-actions {
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.bookmark-item:hover .bookmark-actions {
+  opacity: 1;
+}
+
+.bookmark-action-btn {
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  padding: 0;
+  line-height: 1;
+  transition: all 0.2s;
+}
+
+.bookmark-delete-btn:hover {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+.bookmark-notes-row {
+  margin-top: 4px;
+}
+
+.bookmark-notes-input {
+  width: 100%;
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: inherit;
+  color: #6b7280;
+  background: transparent;
+  transition: all 0.15s;
+}
+
+.bookmark-notes-input:hover {
+  border-color: #e5e7eb;
+  background: #f9fafb;
+}
+
+.bookmark-notes-input:focus {
+  outline: none;
+  border-color: #4F45E0;
+  background: white;
+  box-shadow: 0 0 0 1px rgba(79, 69, 224, 0.1);
+}
+
+.bookmark-notes-input::placeholder {
+  color: #d1d5db;
 }
 
 

@@ -10,21 +10,26 @@
 
 let currentTab = null;
 let sidebarPreferredTab = null;
+let currentSidebarMode = 'none';
 
 // Initialize popup
 document.addEventListener('DOMContentLoaded', async () => {
+  await loadPropertyDisplayNames();
   await checkCurrentTab();
   await loadStoredEvents();
   await loadStoredPropertyNames();
+  await loadBookmarks();
   setupEventListeners();
   setupTabNavigation();
   await restoreLastActiveTab();
 });
 
-// Check if current tab is a Mixpanel profile page
+// Check if current tab is a Mixpanel profile page or has sidebar feed
 async function checkCurrentTab() {
   const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
   currentTab = tabs[0];
+  sidebarPreferredTab = null;
+  currentSidebarMode = 'none';
 
   const applyBtn = document.getElementById('applyBtn');
   const content = document.getElementById('content');
@@ -34,6 +39,7 @@ async function checkCurrentTab() {
   const headerButtons = [
     document.getElementById('copyAnalyticsIdBtn'),
     document.getElementById('shareUserPageBtn'),
+    document.getElementById('bookmarkIconBtn'),
     document.getElementById('exportIconBtn'),
     document.getElementById('importIconBtn'),
     document.getElementById('trashIconBtn')
@@ -45,11 +51,19 @@ async function checkCurrentTab() {
     });
   }
 
-  if (currentTab && currentTab.url &&
+  function enableSidebarBookmarkButton() {
+    const bookmarkBtn = document.getElementById('bookmarkIconBtn');
+    if (bookmarkBtn) bookmarkBtn.disabled = false;
+  }
+
+  // Check for full profile page
+  const isFullProfile = currentTab && currentTab.url &&
       currentTab.url.includes('mixpanel.com/project/') &&
       currentTab.url.includes('/app/profile') &&
-      currentTab.url.includes('distinct_id=')) {
+      currentTab.url.includes('distinct_id=');
 
+  if (isFullProfile) {
+    currentSidebarMode = 'full_profile';
     const isContentScriptLoaded = await checkContentScript();
 
     if (isContentScriptLoaded) {
@@ -59,6 +73,7 @@ async function checkCurrentTab() {
       if (tabNavigation) tabNavigation.style.display = 'flex';
       setHeaderButtonsEnabled(true);
       setBadge('!', '#4CAF50', '#FFFFFF');
+      if (typeof updateSidebarTabAvailability === 'function') updateSidebarTabAvailability();
     } else {
       applyBtn.disabled = true;
       content.style.display = 'none';
@@ -66,6 +81,7 @@ async function checkCurrentTab() {
       if (tabNavigation) tabNavigation.style.display = 'none';
       setHeaderButtonsEnabled(false);
       clearBadge();
+      if (typeof updateSidebarTabAvailability === 'function') updateSidebarTabAvailability();
 
       const warning = document.createElement('div');
       warning.className = 'inactive-view';
@@ -78,15 +94,51 @@ async function checkCurrentTab() {
       `;
       content.parentNode.insertBefore(warning, content);
     }
-  } else {
-    applyBtn.disabled = true;
-    content.style.display = 'none';
-    inactiveView.style.display = 'block';
-    if (tabNavigation) tabNavigation.style.display = 'none';
-    setHeaderButtonsEnabled(false);
-    clearBadge();
-    updateMixpanelButtonText();
+    return;
   }
+
+  // Check for sidebar feed on report pages
+  const isOnMixpanel = currentTab && currentTab.url && 
+      currentTab.url.includes('mixpanel.com/project/');
+  
+  if (isOnMixpanel) {
+    const isContentScriptLoaded = await checkContentScript();
+    
+    if (isContentScriptLoaded) {
+      // Check which sidebar tab is active via content script
+      try {
+        const response = await chrome.tabs.sendMessage(currentTab.id, { action: 'getSidebarViewMode' });
+
+        if (response && (response.mode === 'activities' || response.mode === 'properties')) {
+          // Enable timeline + properties mode (no URL mutation in sidebar)
+          currentSidebarMode = response.mode;
+          applyBtn.disabled = true; // Can't mutate URL in sidebar
+          content.style.display = 'flex';
+          inactiveView.style.display = 'none';
+          if (tabNavigation) tabNavigation.style.display = 'flex';
+          setHeaderButtonsEnabled(false); // Most header actions need full profile
+          enableSidebarBookmarkButton(); // Keep bookmarking available in sidebar mode
+          setBadge('!', '#4CAF50', '#FFFFFF');
+          sidebarPreferredTab = response.mode === 'properties' ? 'filterProperties' : 'eventTimeline';
+          if (typeof updateSidebarTabAvailability === 'function') updateSidebarTabAvailability();
+          return;
+        }
+      } catch (error) {
+        // Feed not present, fall through to inactive state
+      }
+    }
+  }
+
+  // No valid context found
+  applyBtn.disabled = true;
+  content.style.display = 'none';
+  inactiveView.style.display = 'block';
+  // Show tab navigation so bookmarks tab is always accessible
+  if (tabNavigation) tabNavigation.style.display = 'flex';
+  setHeaderButtonsEnabled(false);
+  clearBadge();
+  if (typeof updateSidebarTabAvailability === 'function') updateSidebarTabAvailability();
+  updateMixpanelButtonText();
 }
 
 // Update the Mixpanel button text based on context
@@ -293,8 +345,14 @@ function setupEventListeners() {
     if (areaName === 'local' && (changes.hiddenEvents || changes.manualEvents)) {
       await loadStoredEvents();
     }
-    if (areaName === 'local' && changes.discoveredProperties) {
+    if (areaName === 'local' && (changes.discoveredProperties || changes.propertyDisplayNames)) {
+      if (changes.propertyDisplayNames) {
+        propertyDisplayNamesCache = changes.propertyDisplayNames.newValue || {};
+      }
       await loadStoredPropertyNames();
+    }
+    if (areaName === 'local' && changes.bookmarks) {
+      await loadBookmarks();
     }
   });
 
@@ -387,6 +445,56 @@ function setupEventListeners() {
   // Header action buttons
   document.getElementById('copyAnalyticsIdBtn').addEventListener('click', copyAnalyticsId);
   document.getElementById('shareUserPageBtn').addEventListener('click', shareUserPage);
+  document.getElementById('bookmarkIconBtn').addEventListener('click', toggleBookmark);
+
+  async function switchSidebarTab(targetMode, targetPopupTab) {
+    if (!currentTab) return;
+    try {
+      const response = await chrome.tabs.sendMessage(currentTab.id, {
+        action: 'setSidebarViewMode',
+        mode: targetMode
+      });
+
+      if (response && response.success) {
+        setTimeout(async () => {
+          await checkCurrentTab();
+          if (typeof switchTab === 'function') await switchTab(targetPopupTab);
+        }, 250);
+      }
+    } catch (error) {
+      console.error('[Popup] Failed switching sidebar tab:', error);
+    }
+  }
+
+  const switchToPropertiesBtn = document.getElementById('switchToPropertiesSidebarBtn');
+  if (switchToPropertiesBtn) {
+    switchToPropertiesBtn.addEventListener('click', async () => {
+      await switchSidebarTab('properties', 'filterProperties');
+    });
+  }
+
+  const switchToActivitiesBtn = document.getElementById('switchToActivitiesSidebarBtn');
+  if (switchToActivitiesBtn) {
+    switchToActivitiesBtn.addEventListener('click', async () => {
+      await switchSidebarTab('activities', 'eventTimeline');
+    });
+  }
+
+  // Collapse All button
+  const collapseAllBtn = document.getElementById('collapseAllBtn');
+  if (collapseAllBtn) {
+    collapseAllBtn.addEventListener('click', async () => {
+      if (!currentTab) return;
+      try {
+        await chrome.tabs.sendMessage(currentTab.id, { action: 'collapseAllEvents' });
+        showNotification('All events collapsed', 'success');
+        // Refresh expand state indicators
+        if (activeTabName === 'eventTimeline') await refreshExpandState();
+      } catch (error) {
+        console.error('[Popup] Error collapsing all events:', error);
+      }
+    });
+  }
 
   document.getElementById('exportIconBtn').addEventListener('click', async () => {
     if (activeTabName === 'filterProperties') await exportProperties();
@@ -401,6 +509,7 @@ function setupEventListeners() {
   document.getElementById('trashIconBtn').addEventListener('click', async () => {
     if (activeTabName === 'filterProperties') await clearProperties();
     else if (activeTabName === 'eventTimeline') await clearTimelineSelections();
+    else if (activeTabName === 'bookmarks') await clearBookmarks();
     else await clearEvents();
   });
 

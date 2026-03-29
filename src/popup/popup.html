@@ -33,6 +33,11 @@
           </button>
         </div>
         <div class="icon-btn-wrapper">
+          <button id="bookmarkIconBtn" class="icon-btn" title="Bookmark User" aria-label="Bookmark User">
+            <img src="../assets/icons/bookmark_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Bookmark" class="icon-svg">
+          </button>
+        </div>
+        <div class="icon-btn-wrapper">
           <button id="exportIconBtn" class="icon-btn" title="Export Events" aria-label="Export Events">
             <img src="../assets/icons/file_save_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Export" class="icon-svg">
           </button>
@@ -55,18 +60,22 @@
     <div id="tabNavigation" class="tab-navigation">
       <button class="tab-btn active" data-tab="filterEvents">
         <img src="../assets/icons/mop_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="" class="tab-icon-svg">
-        <span class="tab-label">Feed Cleaner</span>
+        <span class="tab-label">Cleaner</span>
       </button>
       <button class="tab-btn" data-tab="filterProperties">
         <img src="../assets/icons/map_search_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="" class="tab-icon-svg">
-        <span class="tab-label">Property Finder</span>
+        <span class="tab-label">Properties</span>
       </button>
       <button class="tab-btn" data-tab="eventTimeline">
         <img src="../assets/icons/timeline_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="" class="tab-icon-svg">
-        <span class="tab-label">Quick Timeline</span>
+        <span class="tab-label">Timeline</span>
+      </button>
+      <button class="tab-btn" data-tab="bookmarks">
+        <img src="../assets/icons/bookmark_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="" class="tab-icon-svg">
+        <span class="tab-label">Bookmarks</span>
       </button>
     </div>
-    
+
     <div id="inactiveView" class="inactive-view" style="display: none;">
       <div class="inactive-content">
         <h3 id="inactiveTitle">Follow instruction to activate</h3>
@@ -129,6 +138,12 @@
       
       <!-- Filter Properties Tab -->
       <div id="filterPropertiesTab" class="tab-content">
+        <div id="propertiesInactiveCta" class="tab-inactive-cta" style="display: none;">
+          <p class="tab-inactive-cta-text">Sidebar is on Activities. Switch to User Properties to use this tab.</p>
+          <button id="switchToPropertiesSidebarBtn" class="btn btn-secondary tab-inactive-cta-btn">
+            Go to User Properties
+          </button>
+        </div>
         <!-- Section 1: Current Values Display -->
         <div class="section">
           <h2>Highlighted Properties</h2>
@@ -166,9 +181,21 @@
       
       <!-- Event Timeline Tab -->
       <div id="eventTimelineTab" class="tab-content">
+        <div id="timelineInactiveCta" class="tab-inactive-cta" style="display: none;">
+          <p class="tab-inactive-cta-text">Sidebar is on User Properties. Switch to Activities to use this tab.</p>
+          <button id="switchToActivitiesSidebarBtn" class="btn btn-secondary tab-inactive-cta-btn">
+            Go to Activities
+          </button>
+        </div>
         <!-- Timeline Display (Top) -->
         <div class="section timeline-display-section">
-          <h2>Timeline <span id="timelineEventCount" class="timeline-count"></span></h2>
+          <div class="timeline-header">
+            <h2>Timeline <span id="timelineEventCount" class="timeline-count"></span></h2>
+            <button id="collapseAllBtn" class="btn-collapse-all" title="Collapse all expanded events">
+              <img src="../assets/icons/unfold_less_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Collapse All" style="width: 14px; height: 14px;">
+              <span>Collapse All</span>
+            </button>
+          </div>
           <div id="timelineDisplay" class="timeline-display">
             <p class="empty-state">Select events below to see their timeline.</p>
           </div>
@@ -204,7 +231,36 @@
         </div>
       </div>
       <!-- End Event Timeline Tab -->
-      
+
+      <!-- Bookmarks Tab -->
+      <div id="bookmarksTab" class="tab-content">
+        <div class="section">
+          <div class="bookmarks-header">
+            <h2>Bookmarked Users</h2>
+            <button id="addBookmarkCtaBtn" class="btn btn-secondary bookmarks-cta-btn" title="Bookmark current user">
+              Add Current User
+            </button>
+          </div>
+          <div class="search-container bookmarks-search-container">
+            <input
+              type="text"
+              id="bookmarksSearchInput"
+              class="search-input"
+              placeholder="Search users or notes..."
+              autocomplete="off"
+            />
+            <button id="clearBookmarksSearchBtn" class="clear-search-btn" title="Clear search" style="display: none;">
+              <img src="../assets/icons/cancel_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Clear" style="width: 14px; height: 14px;">
+            </button>
+            <span id="bookmarksSearchCount" class="search-count"></span>
+          </div>
+          <div id="bookmarksList" class="bookmarks-list">
+            <p class="empty-state">No bookmarked users yet. Click the bookmark icon in the header to save the current user.</p>
+          </div>
+        </div>
+      </div>
+      <!-- End Bookmarks Tab -->
+
     </div>
   </div>
   
@@ -213,6 +269,7 @@
   <script src="events-tab.js"></script>
   <script src="properties-tab.js"></script>
   <script src="timeline-tab.js"></script>
+  <script src="bookmarks-tab.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

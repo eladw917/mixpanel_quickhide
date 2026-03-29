@@ -3,25 +3,40 @@
 //
 // Handles immediate badge updates when navigating between pages
 
-// Set notification badge on extension icon
-async function setBadge(text, backgroundColor, textColor) {
+const ACTIVE_BADGE_TEXT = '!';
+const ACTIVE_BADGE_BACKGROUND = '#4CAF50';
+const ACTIVE_BADGE_TEXT_COLOR = '#FFFFFF';
+
+// Set notification badge on extension icon (always per-tab to avoid global leaks)
+async function setBadge(tabId) {
+  if (typeof tabId !== 'number') return;
   try {
-    await chrome.action.setBadgeText({ text });
-    await chrome.action.setBadgeBackgroundColor({ color: backgroundColor });
+    await chrome.action.setBadgeText({ tabId, text: ACTIVE_BADGE_TEXT });
+    await chrome.action.setBadgeBackgroundColor({ tabId, color: ACTIVE_BADGE_BACKGROUND });
     if (chrome.action.setBadgeTextColor) {
-      await chrome.action.setBadgeTextColor({ color: textColor });
+      await chrome.action.setBadgeTextColor({ tabId, color: ACTIVE_BADGE_TEXT_COLOR });
     }
   } catch (error) {
-    console.error('[Background] Error setting badge:', error);
+    // Tab may have been closed
   }
 }
 
-// Clear notification badge from extension icon
-async function clearBadge() {
+// Clear notification badge on extension icon (per-tab)
+async function clearBadge(tabId) {
+  if (typeof tabId !== 'number') return;
+  try {
+    await chrome.action.setBadgeText({ tabId, text: '' });
+  } catch (error) {
+    // Tab may have been closed
+  }
+}
+
+// Ensure the global (default) badge is always empty so new tabs never inherit stale state
+async function clearGlobalBadge() {
   try {
     await chrome.action.setBadgeText({ text: '' });
   } catch (error) {
-    console.error('[Background] Error clearing badge:', error);
+    // Ignore
   }
 }
 
@@ -33,23 +48,17 @@ async function isActiveMixpanelPage(tabId) {
     const tab = await chrome.tabs.get(tabId);
     if (!tab || !tab.url) return false;
 
-    // Check if on activity feed page (must have distinct_id in URL)
-    const isActivityFeed = tab.url.includes('mixpanel.com/project/') &&
-                          tab.url.includes('/app/profile') &&
-                          tab.url.includes('distinct_id=');
-
-    if (!isActivityFeed) {
+    const isOnMixpanel = tab.url.includes('mixpanel.com/project/');
+    if (!isOnMixpanel) {
       return false;
     }
 
-    // Check if content script is loaded and responding
     try {
       const response = await chrome.tabs.sendMessage(tabId, {
-        action: 'getCurrentEvents'
+        action: 'getSidebarViewMode'
       });
-      return response !== undefined;
+      return !!(response && (response.mode === 'activities' || response.mode === 'properties'));
     } catch (error) {
-      // Content script not loaded or not responding
       return false;
     }
   } catch (error) {
@@ -63,20 +72,44 @@ async function updateBadgeForActiveTab() {
   try {
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
     const activeTab = tabs[0];
+    if (!activeTab) return;
 
-    if (activeTab && await isActiveMixpanelPage(activeTab.id)) {
-      setBadge('!', '#4CAF50', '#FFFFFF');
+    if (await isActiveMixpanelPage(activeTab.id)) {
+      await setBadge(activeTab.id);
     } else {
-      clearBadge();
+      await clearBadge(activeTab.id);
     }
   } catch (error) {
     console.error('[Background] Error updating badge:', error);
-    clearBadge();
   }
 }
 
+// Allow content scripts to push immediate badge updates on sidebar open/close.
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action !== 'setBadgeActive') return;
+
+  const tabId = sender?.tab?.id;
+  if (typeof tabId !== 'number') {
+    sendResponse({ success: false });
+    return;
+  }
+
+  if (request.active) {
+    setBadge(tabId).then(() => sendResponse({ success: true }));
+  } else {
+    clearBadge(tabId).then(() => sendResponse({ success: true }));
+  }
+  return true;
+});
+
+// Clear badge immediately when a new tab is created so it never flashes
+chrome.tabs.onCreated.addListener(async (tab) => {
+  await clearBadge(tab.id);
+});
+
 // Listen for tab activation (when user switches tabs)
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
+  await clearBadge(activeInfo.tabId);
   await updateBadgeForActiveTab();
 });
 
@@ -99,12 +132,14 @@ chrome.windows.onFocusChanged.addListener(async (windowId) => {
   }
 });
 
-// Initialize badge on startup
+// Initialize badge on startup — clear global first
 chrome.runtime.onStartup.addListener(async () => {
+  await clearGlobalBadge();
   await updateBadgeForActiveTab();
 });
 
-// Initialize badge when extension is installed/updated
+// Initialize badge when extension is installed/updated — clear global first
 chrome.runtime.onInstalled.addListener(async () => {
+  await clearGlobalBadge();
   await updateBadgeForActiveTab();
 });
