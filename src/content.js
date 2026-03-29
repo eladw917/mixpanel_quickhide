@@ -38,6 +38,22 @@ function getSidebarViewMode() {
   return 'none';
 }
 
+// Retry-aware version: waits briefly for sidebar DOM to render before giving up.
+async function getSidebarViewModeWithRetry(maxWaitMs = 1500) {
+  const immediate = getSidebarViewMode();
+  if (immediate !== 'none') return immediate;
+
+  const interval = 200;
+  let elapsed = 0;
+  while (elapsed < maxWaitMs) {
+    await new Promise(r => setTimeout(r, interval));
+    elapsed += interval;
+    const mode = getSidebarViewMode();
+    if (mode !== 'none') return mode;
+  }
+  return 'none';
+}
+
 function findSidebarTabRegion() {
   const candidates = Array.from(document.querySelectorAll('div, nav, section'));
   return candidates.find((el) => {
@@ -529,7 +545,7 @@ function getExpandedEventsInFeed() {
 // Listen for messages from popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'getSidebarViewMode') {
-    sendResponse({ mode: getSidebarViewMode() });
+    getSidebarViewModeWithRetry().then(mode => sendResponse({ mode }));
     return true;
   }
   if (request.action === 'setSidebarViewMode') {
@@ -725,10 +741,14 @@ setInterval(() => {
 }, 2000);
 
 // Watch for sidebar feed appearing dynamically (e.g., when user opens sidebar on report page)
+let feedDetectedBefore = false;
 const feedObserver = new MutationObserver(() => {
-  // Check if feed just appeared and we haven't initialized yet
-  if ((isOnActivityFeedPage() || isOnPropertiesPanel()) && !observerActive) {
+  const feedNow = isOnActivityFeedPage() || isOnPropertiesPanel();
+  if (feedNow && !feedDetectedBefore) {
+    feedDetectedBefore = true;
     initIfOnActivityFeed();
+  } else if (!feedNow && feedDetectedBefore) {
+    feedDetectedBefore = false;
   }
   scheduleBadgeStateUpdate();
 });

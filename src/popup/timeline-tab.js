@@ -233,12 +233,10 @@ function displayTimeline() {
         await hideTimelineEvent(event);
       });
 
-      // Click to expand (navigate) — never collapses
+      // Click to navigate to event — expand if collapsed, scroll if already expanded
       eventItem.addEventListener('click', async () => {
         if (!currentTab) return;
         try {
-          // Sync once right before click handling so we avoid sending openEvent
-          // for items already expanded in the page.
           await refreshExpandState();
 
           document.querySelectorAll('.timeline-event-item.clicked').forEach(item => {
@@ -248,15 +246,9 @@ function displayTimeline() {
           eventItem.classList.add('clicked');
           eventItem.classList.add('read');
 
-          // Mark as read persistently
           if (!readTimelineEvents.includes(eventKey)) {
             readTimelineEvents.push(eventKey);
             await chrome.storage.local.set({ readTimelineEvents });
-          }
-
-          // Hard guard: never request toggle/open when this event is already expanded.
-          if (eventItem.classList.contains('expanded') || expandedEventsSet.has(eventKey)) {
-            return;
           }
 
           const response = await chrome.tabs.sendMessage(currentTab.id, {
