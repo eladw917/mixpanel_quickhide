@@ -4,6 +4,9 @@
 let eventDatabase = [];
 let selectedTimelineEvents = [];
 let hiddenTimelineEvents = [];
+let readTimelineEvents = [];
+let expandedEventsSet = new Set(); // "name|||time" keys of currently expanded events
+let expandPollInterval = null;
 let earliestEventInfo = null;
 
 // Load timeline data from activity feed
@@ -14,15 +17,19 @@ async function loadTimelineData() {
   const isLoaded = currentTab && await checkContentScript();
 
   if (!isLoaded) {
-    timelineEventsList.innerHTML = '<p class="empty-state">Not on activity feed page.</p>';
+    timelineEventsList.innerHTML = '<p class="empty-state">Activity feed not detected. Open a user profile or sidebar feed to use timeline.</p>';
     if (loadMoreBtn) loadMoreBtn.textContent = 'Load more events';
     return;
   }
 
   // Load saved selections
-  const cached = await chrome.storage.local.get(['selectedTimelineEvents', 'hiddenTimelineEvents']);
+  const cached = await chrome.storage.local.get(['selectedTimelineEvents', 'hiddenTimelineEvents', 'readTimelineEvents']);
   selectedTimelineEvents = cached['selectedTimelineEvents'] || [];
   hiddenTimelineEvents = cached['hiddenTimelineEvents'] || [];
+  readTimelineEvents = cached['readTimelineEvents'] || [];
+
+  // Start polling for expand state
+  startExpandStatePoll();
 
   try {
     const eventsResponse = await chrome.tabs.sendMessage(currentTab.id, {
@@ -176,8 +183,15 @@ function displayTimeline() {
     timelineDisplay.appendChild(separator);
 
     eventsByDate[date].forEach(event => {
+      const eventKey = `${event.name}|||${event.displayTime || event.time}`;
+      const isRead = readTimelineEvents.includes(eventKey);
+      const isExpanded = expandedEventsSet.has(eventKey);
+
       const eventItem = document.createElement('div');
       eventItem.className = 'timeline-event-item';
+      eventItem.dataset.eventKey = eventKey;
+      if (isRead) eventItem.classList.add('read');
+      if (isExpanded) eventItem.classList.add('expanded');
 
       const nameSpan = document.createElement('span');
       nameSpan.className = 'timeline-event-name';
@@ -187,9 +201,31 @@ function displayTimeline() {
       timeSpan.className = 'timeline-event-time';
       timeSpan.textContent = event.displayTime || event.time || '';
 
+      // Collapse button (only visible when expanded)
+      const collapseBtn = document.createElement('button');
+      collapseBtn.className = 'timeline-collapse-btn';
+      collapseBtn.title = 'Collapse this event';
+      collapseBtn.innerHTML = '<img src="../assets/icons/unfold_less_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Collapse" style="width: 12px; height: 12px;">';
+      collapseBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!currentTab) return;
+        try {
+          await chrome.tabs.sendMessage(currentTab.id, {
+            action: 'collapseEvent',
+            eventName: event.name,
+            eventTime: event.displayTime || event.time
+          });
+          expandedEventsSet.delete(eventKey);
+          eventItem.classList.remove('expanded');
+        } catch (error) {
+          console.error('[Popup] Error collapsing event:', error);
+        }
+      });
+
       const deleteBtn = document.createElement('button');
       deleteBtn.className = 'timeline-delete-btn';
-      deleteBtn.innerHTML = '×';
+      deleteBtn.innerHTML = '&times;';
       deleteBtn.title = 'Remove from timeline';
       deleteBtn.addEventListener('click', async (e) => {
         e.preventDefault();
@@ -197,22 +233,42 @@ function displayTimeline() {
         await hideTimelineEvent(event);
       });
 
+      // Click to expand (navigate) — never collapses
       eventItem.addEventListener('click', async () => {
         if (!currentTab) return;
         try {
+          // Sync once right before click handling so we avoid sending openEvent
+          // for items already expanded in the page.
+          await refreshExpandState();
+
           document.querySelectorAll('.timeline-event-item.clicked').forEach(item => {
             item.classList.remove('clicked');
-            item.classList.add('visited');
           });
 
           eventItem.classList.add('clicked');
-          eventItem.classList.add('visited');
+          eventItem.classList.add('read');
 
-          await chrome.tabs.sendMessage(currentTab.id, {
+          // Mark as read persistently
+          if (!readTimelineEvents.includes(eventKey)) {
+            readTimelineEvents.push(eventKey);
+            await chrome.storage.local.set({ readTimelineEvents });
+          }
+
+          // Hard guard: never request toggle/open when this event is already expanded.
+          if (eventItem.classList.contains('expanded') || expandedEventsSet.has(eventKey)) {
+            return;
+          }
+
+          const response = await chrome.tabs.sendMessage(currentTab.id, {
             action: 'openEvent',
             eventName: event.name,
             eventTime: event.displayTime || event.time
           });
+
+          if (response && response.success) {
+            expandedEventsSet.add(eventKey);
+            eventItem.classList.add('expanded');
+          }
         } catch (error) {
           console.error('[Popup] Error opening event:', error);
         }
@@ -220,6 +276,7 @@ function displayTimeline() {
 
       eventItem.appendChild(nameSpan);
       eventItem.appendChild(timeSpan);
+      eventItem.appendChild(collapseBtn);
       eventItem.appendChild(deleteBtn);
       timelineDisplay.appendChild(eventItem);
     });
@@ -267,19 +324,63 @@ function filterTimelineEventNames(searchTerm) {
 async function clearTimelineSelections() {
   const checkboxes = document.querySelectorAll('.timeline-event-checkbox');
 
-  if (checkboxes.length === 0 && hiddenTimelineEvents.length === 0) return;
+  if (checkboxes.length === 0 && hiddenTimelineEvents.length === 0 && readTimelineEvents.length === 0) return;
 
   checkboxes.forEach(cb => { cb.checked = false; });
 
   selectedTimelineEvents = [];
   hiddenTimelineEvents = [];
+  readTimelineEvents = [];
+  expandedEventsSet.clear();
 
   await chrome.storage.local.set({
     selectedTimelineEvents: [],
-    hiddenTimelineEvents: []
+    hiddenTimelineEvents: [],
+    readTimelineEvents: []
   });
 
   displayTimeline();
+}
+
+// Start polling for expand state from the page
+function startExpandStatePoll() {
+  if (expandPollInterval) clearInterval(expandPollInterval);
+  expandPollInterval = setInterval(async () => {
+    if (activeTabName !== 'eventTimeline') return;
+    await refreshExpandState();
+  }, 2000);
+}
+
+// Refresh expand state from the content script
+async function refreshExpandState() {
+  if (!currentTab) return;
+  try {
+    const response = await chrome.tabs.sendMessage(currentTab.id, {
+      action: 'getExpandedEvents'
+    });
+    if (response && response.success && response.expanded) {
+      const newSet = new Set(response.expanded.map(e => `${e.name}|||${e.time}`));
+
+      // Update DOM if changed
+      if (setsDiffer(expandedEventsSet, newSet)) {
+        expandedEventsSet = newSet;
+        document.querySelectorAll('.timeline-event-item').forEach(item => {
+          const key = item.dataset.eventKey;
+          if (key) {
+            item.classList.toggle('expanded', expandedEventsSet.has(key));
+          }
+        });
+      }
+    }
+  } catch (error) {
+    // Content script may not be available
+  }
+}
+
+function setsDiffer(a, b) {
+  if (a.size !== b.size) return true;
+  for (const val of a) { if (!b.has(val)) return true; }
+  return false;
 }
 
 // Export timeline events to a .txt file

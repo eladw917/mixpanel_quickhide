@@ -153,6 +153,51 @@ function extractEarliestEvent() {
   }
 }
 
+// Read analytics ID from profile input field or URL hash
+function extractAnalyticsIdFromDOM() {
+  try {
+    const labels = document.querySelectorAll('mp-input-label[label]');
+    for (const label of labels) {
+      const labelValue = (label.getAttribute('label') || '').trim().toLowerCase();
+      if (labelValue !== 'analyticsid') continue;
+      const inputContainer = label.closest('mp-input') || label.parentElement;
+      if (!inputContainer) continue;
+      const input = inputContainer.querySelector('input');
+      const inputValue = input?.value?.trim();
+      if (inputValue) return inputValue;
+    }
+    const hash = window.location.hash;
+    const match = hash.match(/distinct_id=([^&]+)/);
+    if (match && match[1]) return decodeURIComponent(match[1]);
+    return null;
+  } catch (error) {
+    return null;
+  }
+}
+
+// Set a meaningful tab title on the activity feed page
+let feedTitleSet = false;
+
+function updateActivityFeedTitle() {
+  if (!isOnActivityFeedPage()) {
+    if (feedTitleSet) {
+      document.title = 'Mixpanel';
+      feedTitleSet = false;
+    }
+    return;
+  }
+  const analyticsId = extractAnalyticsIdFromDOM();
+  if (!analyticsId) return;
+  const cleanId = analyticsId.startsWith('$device:')
+    ? analyticsId.slice('$device:'.length)
+    : analyticsId;
+  const title = `Activity Feed - User ${cleanId}`;
+  if (document.title !== title) {
+    document.title = title;
+  }
+  feedTitleSet = true;
+}
+
 // Function to check and parse properties
 function checkAndParseProperties() {
   if (!isOnActivityFeedPage()) return;
@@ -343,11 +388,13 @@ function initIfOnActivityFeed() {
 
   checkAndExtractEvents();
   checkAndParseProperties();
+  updateActivityFeedTitle();
   startObserver();
 
   // Also check after a delay since properties might load dynamically
   setTimeout(() => {
     checkAndParseProperties();
+    updateActivityFeedTitle();
   }, 2000);
 }
 
@@ -356,6 +403,7 @@ initIfOnActivityFeed();
 
 // Monitor hash changes
 window.addEventListener('hashchange', () => {
+  updateActivityFeedTitle();
   if (isOnActivityFeedPage()) {
     checkAndExtractEvents();
     checkAndParseProperties();
@@ -365,6 +413,7 @@ window.addEventListener('hashchange', () => {
 
 // Monitor SPA navigations via pushState/replaceState
 window.addEventListener('popstate', () => {
+  updateActivityFeedTitle();
   initIfOnActivityFeed();
 });
 
@@ -373,6 +422,7 @@ let lastURL = window.location.href;
 setInterval(() => {
   if (window.location.href !== lastURL) {
     lastURL = window.location.href;
+    updateActivityFeedTitle();
     initIfOnActivityFeed();
   }
 }, 2000);

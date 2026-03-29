@@ -183,7 +183,7 @@ async function loadAndDisplayPropertyValues() {
   const isLoaded = currentTab && await checkContentScript();
 
   if (!isLoaded) {
-    propertyValuesList.innerHTML = '<p class="empty-state">Navigate to a Mixpanel profile page to see property values.</p>';
+    propertyValuesList.innerHTML = '<p class="empty-state">Activity feed not detected. Open a user profile or sidebar feed to see property values.</p>';
     return;
   }
 
@@ -193,6 +193,10 @@ async function loadAndDisplayPropertyValues() {
     });
 
     if (response && response.properties) {
+      // Update display names cache if available
+      if (response.displayNames) {
+        Object.assign(propertyDisplayNamesCache, response.displayNames);
+      }
       displayPropertyValues(response.properties, selectedProperties);
     } else {
       propertyValuesList.innerHTML = '<p class="empty-state">No properties found on this page.</p>';

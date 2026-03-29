@@ -9,6 +9,7 @@
 //   timeline-tab.js — Quick Timeline tab logic
 
 let currentTab = null;
+let sidebarPreferredTab = null;
 
 // Initialize popup
 document.addEventListener('DOMContentLoaded', async () => {

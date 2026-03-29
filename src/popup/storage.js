@@ -39,9 +39,13 @@ async function loadStoredEvents() {
 
 // Load stored property names from storage
 async function loadStoredPropertyNames() {
-  const result = await chrome.storage.local.get(['discoveredProperties', 'selectedProperties']);
+  const result = await chrome.storage.local.get(['discoveredProperties', 'selectedProperties', 'propertyDisplayNames']);
   const discoveredProperties = result.discoveredProperties || [];
   const selectedProperties = result.selectedProperties || [];
+  // Update display names cache
+  if (result.propertyDisplayNames) {
+    propertyDisplayNamesCache = result.propertyDisplayNames;
+  }
   await displayPropertyNames(discoveredProperties, selectedProperties);
 }
 
