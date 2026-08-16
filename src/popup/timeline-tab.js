@@ -62,6 +62,7 @@ async function loadTimelineData() {
 
       displayTimelineEventNames();
       displayTimeline();
+      updateTimelineFilterButtons();
     } else {
       timelineEventsList.innerHTML = '<p class="empty-state">No events on this page.</p>';
       if (loadMoreBtn) loadMoreBtn.textContent = 'Load more events';
@@ -134,6 +135,10 @@ async function updateSelectedTimelineEvents() {
     selectedTimelineEvents: selectedTimelineEvents,
     hiddenTimelineEvents: hiddenTimelineEvents
   });
+
+  if (typeof updateTimelineFilterButtons === 'function') {
+    updateTimelineFilterButtons();
+  }
 }
 
 // Display timeline with day separators
@@ -290,6 +295,58 @@ async function hideTimelineEvent(event) {
   }
 }
 
+function updateTimelineFilterButtons() {
+  const showOnlyBtn = document.getElementById('showOnlySelectedBtn');
+  const showAllBtn = document.getElementById('showAllEventsBtn');
+  const onFullProfile = typeof isOnFullProfilePage === 'function' && isOnFullProfilePage();
+
+  if (showOnlyBtn) {
+    showOnlyBtn.disabled = !onFullProfile || selectedTimelineEvents.length === 0;
+  }
+  if (showAllBtn) {
+    showAllBtn.disabled = !onFullProfile;
+  }
+}
+
+async function applyTimelineIncludedEvents() {
+  if (!currentTab || selectedTimelineEvents.length === 0) return;
+
+  try {
+    const response = await chrome.tabs.sendMessage(currentTab.id, {
+      action: 'applyIncludedEvents',
+      events: selectedTimelineEvents
+    });
+
+    if (response && response.success) {
+      showNotification('Activity filtered to selected events', 'success');
+    } else {
+      showNotification('Error: ' + (response?.error || 'Unknown error'), 'error');
+    }
+  } catch (error) {
+    console.error('[Popup] Error applying included events:', error);
+    showNotification('Error applying filter. Try refreshing the page.', 'error');
+  }
+}
+
+async function clearTimelineEventFilters() {
+  if (!currentTab) return;
+
+  try {
+    const response = await chrome.tabs.sendMessage(currentTab.id, {
+      action: 'clearEventFilters'
+    });
+
+    if (response && response.success) {
+      showNotification('Activity filter cleared', 'success');
+    } else {
+      showNotification('Error: ' + (response?.error || 'Unknown error'), 'error');
+    }
+  } catch (error) {
+    console.error('[Popup] Error clearing event filters:', error);
+    showNotification('Error clearing filter. Try refreshing the page.', 'error');
+  }
+}
+
 // Filter timeline event names based on search
 function filterTimelineEventNames(searchTerm) {
   const eventItems = document.querySelectorAll('#timelineEventsList .event-item');
@@ -332,6 +389,7 @@ async function clearTimelineSelections() {
   });
 
   displayTimeline();
+  updateTimelineFilterButtons();
 }
 
 // Start polling for expand state from the page

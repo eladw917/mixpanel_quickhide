@@ -5,6 +5,18 @@ All notable changes to the Mixpanel Activity Navigator extension will be documen
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-08-16
+
+### Added
+- Timeline **Show only selected** applies Mixpanel’s native “exclude all but” filter (`includedEvents`)
+- Timeline **Show all events** clears include/exclude filters from the profile URL
+- Grouped activity rows (count badge + submenu) are treated as the same event type
+
+### Fixed
+- Include-filter URLs now use Mixpanel hash encoding (`App Session` → `App*20Session`)
+- Lexicon display names map to raw event names for filters (`App Session` → `$ae_session`)
+- Opening a grouped timeline event expands the submenu, then the individual event
+
 ## [1.3.2] - 2025-11-25
 
 ### Added

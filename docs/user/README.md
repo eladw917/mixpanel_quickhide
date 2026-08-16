@@ -607,7 +607,13 @@ For issues, questions, or suggestions:
 
 ## Changelog
 
-### Version 1.3.0 (Current)
+### Version 1.4.0 (Current)
+- ✅ **Show only selected** on Timeline — filter the Mixpanel activity feed to checked events
+- ✅ **Show all events** — clear include/exclude filters from the profile URL
+- ✅ Grouped activity events (count badge) treated as one event type
+- ✅ Include-filter uses Mixpanel raw event names and hash encoding
+
+### Version 1.3.0
 - ✅ **Quick Timeline Tab** - Track specific events across user journeys
 - ✅ Chronological timeline view with day separators
 - ✅ Click timeline events to expand in Mixpanel

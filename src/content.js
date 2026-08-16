@@ -113,23 +113,37 @@ function isOnFullProfilePage() {
 }
 
 // Function to extract hidden events from URL hash
+function encodeMixpanelHashString(value) {
+  return String(value).replace(/[^A-Za-z0-9_\-$]/g, (char) => {
+    return encodeURIComponent(char)
+      .replace(/[!'()~]/g, (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase())
+      .replace(/%/g, '*');
+  });
+}
+
+function decodeMixpanelHashString(value) {
+  const normalized = String(value).trim().replace(/\*/g, '%');
+  try {
+    return decodeURIComponent(normalized);
+  } catch (error) {
+    return String(value).trim();
+  }
+}
+
+function parseEventFilterList(hash, key) {
+  const match = hash.match(new RegExp(`${key}~\\(([^)]*)\\)`));
+  if (!match) return [];
+
+  return match[1]
+    .split("~'")
+    .filter((event) => event.length > 0)
+    .map((event) => decodeMixpanelHashString(event));
+}
+
 function extractHiddenEvents() {
   const hash = window.location.hash;
-
   if (!hash) return [];
-
-  const excludedEventsMatch = hash.match(/excludedEvents~\(([^)]*)\)/);
-
-  if (!excludedEventsMatch) return [];
-
-  const eventsString = excludedEventsMatch[1];
-
-  const events = eventsString
-    .split("~'")
-    .filter(event => event.length > 0)
-    .map(event => event.trim());
-
-  return events;
+  return parseEventFilterList(hash, 'excludedEvents');
 }
 
 // Function to save discovered events to storage
@@ -212,6 +226,160 @@ async function saveDiscoveredProperties(properties, displayNames) {
   }
 }
 
+function getEventNameFromTitleEl(nameEl) {
+  if (!nameEl) return '';
+
+  const textParts = [];
+  nameEl.childNodes.forEach((node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = node.textContent.trim();
+      if (text) textParts.push(text);
+      return;
+    }
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      const inner = (node.textContent || '').trim();
+      if (inner && !/^\d+$/.test(inner)) {
+        textParts.push(inner);
+      }
+    }
+  });
+
+  if (textParts.length > 0) return textParts.join(' ').trim();
+  return (nameEl.textContent || '').trim();
+}
+
+function getEventNameFromWrapper(wrapper) {
+  return getEventNameFromTitleEl(wrapper.querySelector('.activity-event-title'));
+}
+
+const MIXPANEL_AUTO_DISPLAY_TO_RAW = {
+  'App Session': '$ae_session',
+  'First App Open': '$ae_first_open',
+  'App Updated': '$ae_updated',
+  'App Crashed': '$ae_crashed'
+};
+
+function findRawEventNameInJson(value) {
+  if (!value || typeof value !== 'object') return null;
+  if (typeof value.raw === 'string' && value.raw) return value.raw;
+  if (typeof value.name?.raw === 'string') return value.name.raw;
+  if (typeof value.event === 'string') return value.event;
+  if (typeof value.event_name === 'string') return value.event_name;
+  if (typeof value.eventName === 'string') return value.eventName;
+  for (const nested of Object.values(value)) {
+    if (nested && typeof nested === 'object') {
+      const found = findRawEventNameInJson(nested);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function getRawEventNameFromWrapper(wrapper, displayName) {
+  const elements = [wrapper, ...Array.from(wrapper.querySelectorAll('*')).slice(0, 50)];
+  for (const el of elements) {
+    if (typeof el.event === 'string' && el.event) return el.event;
+    if (typeof el.eventName === 'string' && el.eventName) return el.eventName;
+    if (el.event && typeof el.event === 'object') {
+      const fromObj = findRawEventNameInJson(el.event);
+      if (fromObj) return fromObj;
+    }
+
+    if (typeof el.getAttributeNames !== 'function') continue;
+    for (const attr of el.getAttributeNames()) {
+      const val = el.getAttribute(attr);
+      if (!val) continue;
+      if (['event', 'data-event', 'event-name', 'data-event-name'].includes(attr) &&
+          !val.startsWith('{') && !val.startsWith('[')) {
+        return val;
+      }
+      if (val.startsWith('{') || val.startsWith('[')) {
+        try {
+          const found = findRawEventNameInJson(JSON.parse(val));
+          if (found) return found;
+        } catch (error) {
+          // Ignore non-JSON attributes
+        }
+      }
+    }
+  }
+
+  const nameEl = wrapper.querySelector('.activity-event-title');
+  const titleAttr = nameEl?.getAttribute('title')?.trim();
+  if (titleAttr && titleAttr !== displayName) return titleAttr;
+
+  return MIXPANEL_AUTO_DISPLAY_TO_RAW[displayName] || displayName;
+}
+
+function resolveEventNamesForUrl(names) {
+  const parsed = parseEventsFromDOM();
+  const displayToRaw = new Map();
+  parsed.forEach((event) => {
+    if (event.name && event.rawName && !displayToRaw.has(event.name)) {
+      displayToRaw.set(event.name, event.rawName);
+    }
+  });
+
+  return names.map((name) => displayToRaw.get(name) || MIXPANEL_AUTO_DISPLAY_TO_RAW[name] || name);
+}
+
+function getEventTimeFromWrapper(wrapper) {
+  const timeEl = wrapper.querySelector('.activity-time');
+  return timeEl ? timeEl.textContent.trim() : '';
+}
+
+function getImmediateNestedWrappers(wrapper) {
+  return Array.from(wrapper.querySelectorAll('.activity-event-wrapper')).filter((child) => {
+    if (child === wrapper) return false;
+    return child.parentElement?.closest('.activity-event-wrapper') === wrapper;
+  });
+}
+
+function hasCountBadge(wrapper) {
+  const nameEl = wrapper.querySelector('.activity-event-title');
+  if (!nameEl) return false;
+
+  const isNumericBadge = (el) => {
+    if (!el) return false;
+    const text = (el.textContent || '').trim();
+    return /^\d+$/.test(text) && text.length <= 4;
+  };
+
+  if (Array.from(nameEl.querySelectorAll('*')).some(isNumericBadge)) return true;
+  if (isNumericBadge(nameEl.nextElementSibling)) return true;
+
+  const timeEl = wrapper.querySelector('.activity-time');
+  const region = nameEl.parentElement || wrapper;
+  return Array.from(region.children).some((el) => {
+    if (el === nameEl || el === timeEl) return false;
+    return isNumericBadge(el);
+  });
+}
+
+function wrapperMatchesEvent(wrapper, eventName, eventTime) {
+  return getEventNameFromWrapper(wrapper) === eventName && getEventTimeFromWrapper(wrapper) === eventTime;
+}
+
+function collectEventsFromWrapper(wrapper, currentDate, events) {
+  const nested = getImmediateNestedWrappers(wrapper);
+  if (nested.length > 0) {
+    nested.forEach((child) => collectEventsFromWrapper(child, currentDate, events));
+    return;
+  }
+
+  const timeEl = wrapper.querySelector('.activity-time');
+  const nameEl = wrapper.querySelector('.activity-event-title');
+  if (timeEl && nameEl) {
+    const name = getEventNameFromTitleEl(nameEl);
+    events.push({
+      name,
+      rawName: getRawEventNameFromWrapper(wrapper, name),
+      displayTime: timeEl.textContent.trim(),
+      date: currentDate || 'Unknown Date'
+    });
+  }
+}
+
 // Function to parse events from activity feed
 function parseEventsFromDOM() {
   const events = [];
@@ -235,16 +403,7 @@ function parseEventsFromDOM() {
 
       if (node.nodeType === Node.ELEMENT_NODE) {
         if (node.classList && node.classList.contains('activity-event-wrapper')) {
-          const timeEl = node.querySelector('.activity-time');
-          const nameEl = node.querySelector('.activity-event-title');
-
-          if (timeEl && nameEl) {
-            events.push({
-              name: nameEl.textContent.trim(),
-              displayTime: timeEl.textContent.trim(),
-              date: currentDate || 'Unknown Date'
-            });
-          }
+          collectEventsFromWrapper(node, currentDate, events);
         } else {
           processChildren(node);
         }
@@ -410,39 +569,73 @@ function selectYourPropertiesTab(wrapper) {
   }, 400);
 }
 
+function clickEventExpander(wrapper) {
+  const mpSection = wrapper.querySelector('mp-section');
+  const titleContainer = mpSection?.shadowRoot?.querySelector('.mp-section-title-container');
+  if (titleContainer) {
+    titleContainer.click();
+    return true;
+  }
+  wrapper.click();
+  return true;
+}
+
+function expandEventDetails(wrapper) {
+  wrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+  if (isEventExpanded(wrapper)) {
+    selectYourPropertiesTab(wrapper);
+    return { success: true, wasAlreadyExpanded: true };
+  }
+
+  const mpSection = wrapper.querySelector('mp-section');
+  const titleContainer = mpSection?.shadowRoot?.querySelector('.mp-section-title-container');
+  if (!titleContainer) {
+    return { success: false, error: 'Unable to find event expander' };
+  }
+
+  titleContainer.click();
+  selectYourPropertiesTab(wrapper);
+  return { success: true, wasAlreadyExpanded: false };
+}
+
+function findMatchingEventWrappers(eventName, eventTime) {
+  return Array.from(document.querySelectorAll('.activity-event-wrapper'))
+    .filter((wrapper) => wrapperMatchesEvent(wrapper, eventName, eventTime));
+}
+
+function isLeafEventWrapper(wrapper) {
+  return getImmediateNestedWrappers(wrapper).length === 0;
+}
+
 // Function to find and open a specific event (expand only, never collapse)
-function openEventInFeed(eventName, eventTime) {
+async function openEventInFeed(eventName, eventTime) {
   try {
-    const eventWrappers = document.querySelectorAll('.activity-event-wrapper');
+    const matches = findMatchingEventWrappers(eventName, eventTime);
+    const leafMatch = matches.find((wrapper) => isLeafEventWrapper(wrapper) && !hasCountBadge(wrapper));
+    if (leafMatch) {
+      return expandEventDetails(leafMatch);
+    }
 
-    for (const wrapper of eventWrappers) {
-      const nameEl = wrapper.querySelector('.activity-event-title');
-      const timeEl = wrapper.querySelector('.activity-time');
+    for (const wrapper of matches) {
+      const nested = getImmediateNestedWrappers(wrapper);
+      if (nested.length > 0) {
+        const nestedMatch = nested.find((child) => wrapperMatchesEvent(child, eventName, eventTime)) || nested[0];
+        return expandEventDetails(nestedMatch);
+      }
 
-      if (nameEl && timeEl) {
-        const name = nameEl.textContent.trim();
-        const time = timeEl.textContent.trim();
+      if (hasCountBadge(wrapper) || nested.length === 0) {
+        clickEventExpander(wrapper);
+        await new Promise((resolve) => setTimeout(resolve, 350));
 
-        if (name === eventName && time === eventTime) {
-          wrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const children = getImmediateNestedWrappers(wrapper);
+        if (children.length > 0) {
+          const nestedMatch = children.find((child) => wrapperMatchesEvent(child, eventName, eventTime)) || children[0];
+          return expandEventDetails(nestedMatch);
+        }
 
-          // Expand-only behavior: never click when already expanded.
-          if (isEventExpanded(wrapper)) {
-            selectYourPropertiesTab(wrapper);
-            return { success: true, wasAlreadyExpanded: true };
-          }
-
-          const mpSection = wrapper.querySelector('mp-section');
-          const titleContainer = mpSection?.shadowRoot?.querySelector('.mp-section-title-container');
-          if (!titleContainer) {
-            return { success: false, error: 'Unable to find event expander' };
-          }
-
-          titleContainer.click();
-
-          // Auto-select "Your Properties" tab after expanding
+        if (isEventExpanded(wrapper)) {
           selectYourPropertiesTab(wrapper);
-
           return { success: true, wasAlreadyExpanded: false };
         }
       }
@@ -458,33 +651,28 @@ function openEventInFeed(eventName, eventTime) {
 // Collapse a specific event
 function collapseEventInFeed(eventName, eventTime) {
   try {
-    const eventWrappers = document.querySelectorAll('.activity-event-wrapper');
+    const matches = findMatchingEventWrappers(eventName, eventTime);
+    const candidates = [
+      ...matches.filter(isLeafEventWrapper),
+      ...matches
+    ];
 
-    for (const wrapper of eventWrappers) {
-      const nameEl = wrapper.querySelector('.activity-event-title');
-      const timeEl = wrapper.querySelector('.activity-time');
+    for (const wrapper of candidates) {
+      if (isEventExpanded(wrapper)) {
+        clickEventExpander(wrapper);
+        return { success: true };
+      }
 
-      if (nameEl && timeEl) {
-        const name = nameEl.textContent.trim();
-        const time = timeEl.textContent.trim();
-
-        if (name === eventName && time === eventTime) {
-          if (isEventExpanded(wrapper)) {
-            const mpSection = wrapper.querySelector('mp-section');
-            if (mpSection) {
-              const titleContainer = mpSection.shadowRoot?.querySelector('.mp-section-title-container');
-              if (titleContainer) {
-                titleContainer.click();
-              }
-            }
-            return { success: true };
-          }
-          return { success: false, error: 'Event is not expanded' };
+      const nested = getImmediateNestedWrappers(wrapper);
+      for (const child of nested) {
+        if (isEventExpanded(child)) {
+          clickEventExpander(child);
+          return { success: true };
         }
       }
     }
 
-    return { success: false, error: 'Event not found on page' };
+    return { success: false, error: 'Event is not expanded' };
   } catch (error) {
     console.error('[Mixpanel Activity Navigator] Error collapsing event:', error);
     return { success: false, error: error.message };
@@ -524,14 +712,12 @@ function getExpandedEventsInFeed() {
     const eventWrappers = document.querySelectorAll('.activity-event-wrapper');
 
     for (const wrapper of eventWrappers) {
+      if (!isLeafEventWrapper(wrapper)) continue;
       if (isEventExpanded(wrapper)) {
-        const nameEl = wrapper.querySelector('.activity-event-title');
-        const timeEl = wrapper.querySelector('.activity-time');
-        if (nameEl && timeEl) {
-          expanded.push({
-            name: nameEl.textContent.trim(),
-            time: timeEl.textContent.trim()
-          });
+        const name = getEventNameFromWrapper(wrapper);
+        const time = getEventTimeFromWrapper(wrapper);
+        if (name && time) {
+          expanded.push({ name, time });
         }
       }
     }
@@ -555,7 +741,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   // URL mutation operations require full profile page
-  const urlMutationActions = ['applyHiddenEvents', 'getCurrentEvents'];
+  const urlMutationActions = ['applyHiddenEvents', 'applyIncludedEvents', 'clearEventFilters', 'getCurrentEvents'];
   const requiresFullProfile = urlMutationActions.includes(request.action);
   
   if (requiresFullProfile && !isOnFullProfilePage()) {
@@ -580,7 +766,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.action === 'applyHiddenEvents') {
-    applyHiddenEventsToURL(request.events);
+    applyEventFiltersToURL({ excluded: request.events });
+    sendResponse({ success: true });
+  } else if (request.action === 'applyIncludedEvents') {
+    applyEventFiltersToURL({ included: request.events });
+    sendResponse({ success: true });
+  } else if (request.action === 'clearEventFilters') {
+    applyEventFiltersToURL({ clear: true });
     sendResponse({ success: true });
   } else if (request.action === 'getCurrentEvents') {
     const currentEvents = extractHiddenEvents();
@@ -601,8 +793,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     const result = clickShowMoreButton();
     sendResponse(result);
   } else if (request.action === 'openEvent') {
-    const result = openEventInFeed(request.eventName, request.eventTime);
-    sendResponse(result);
+    openEventInFeed(request.eventName, request.eventTime).then(sendResponse);
+    return true;
   } else if (request.action === 'collapseEvent') {
     const result = collapseEventInFeed(request.eventName, request.eventTime);
     sendResponse(result);
@@ -616,8 +808,53 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   return true;
 });
 
-// Function to apply selected events to the URL
-function applyHiddenEventsToURL(eventsToHide) {
+function encodeEventFilterBlock(key, events) {
+  if (!events || events.length === 0) return '';
+  return `${key}~(${events.map((event) => `~'${encodeMixpanelHashString(event)}`).join('')})`;
+}
+
+function removeEventFilterBlock(hashContent, key) {
+  hashContent = hashContent.replace(new RegExp(`${key}~\\([^)]*\\)~`), '');
+  hashContent = hashContent.replace(new RegExp(`&~\\(${key}~\\([^)]*\\)\\)`), '');
+  hashContent = hashContent.replace(new RegExp(`${key}~\\([^)]*\\)`), '');
+  return hashContent;
+}
+
+function upsertEventFilterBlock(hashContent, key, events) {
+  const block = encodeEventFilterBlock(key, events);
+  const regex = new RegExp(`${key}~\\([^)]*\\)`);
+
+  if (regex.test(hashContent)) {
+    if (block) {
+      return hashContent.replace(regex, block);
+    }
+    return removeEventFilterBlock(hashContent, key);
+  }
+
+  if (!block) return hashContent;
+
+  if (hashContent.includes('&~(')) {
+    return hashContent.replace(/&~\(/, `&~(${block}~`);
+  }
+  return `${hashContent}&~(${block})`;
+}
+
+const DEFAULT_DATE_RANGE = "dateRange~(type~'in*20the*20last~exclusionOffset~null~window~(unit~'day~value~30))";
+
+function ensureDateRange(hashContent) {
+  if (/dateRange~\(/.test(hashContent)) return hashContent;
+
+  if (hashContent.includes('&~(')) {
+    const lastParen = hashContent.lastIndexOf(')');
+    if (lastParen !== -1) {
+      return `${hashContent.slice(0, lastParen)}~${DEFAULT_DATE_RANGE}${hashContent.slice(lastParen)}`;
+    }
+  }
+
+  return `${hashContent}&~(${DEFAULT_DATE_RANGE})`;
+}
+
+function applyEventFiltersToURL({ included, excluded, clear } = {}) {
   const currentHash = window.location.hash;
 
   if (!currentHash) {
@@ -627,26 +864,17 @@ function applyHiddenEventsToURL(eventsToHide) {
 
   let hashContent = currentHash.substring(1);
 
-  const excludedEventsString = eventsToHide.length > 0
-    ? `excludedEvents~(${eventsToHide.map(e => `~'${e}`).join('')})`
-    : '';
-
-  const excludedEventsRegex = /excludedEvents~\([^)]*\)/;
-
-  if (excludedEventsRegex.test(hashContent)) {
-    if (excludedEventsString) {
-      hashContent = hashContent.replace(excludedEventsRegex, excludedEventsString);
-    } else {
-      hashContent = hashContent.replace(/excludedEvents~\([^)]*\)~/, '');
-      hashContent = hashContent.replace(/&~\(excludedEvents~\([^)]*\)\)/, '');
-      hashContent = hashContent.replace(/excludedEvents~\([^)]*\)/, '');
-    }
-  } else if (excludedEventsString) {
-    if (hashContent.includes('&~(')) {
-      hashContent = hashContent.replace(/&~\(/, `&~(${excludedEventsString}~`);
-    } else {
-      hashContent += `&~(${excludedEventsString})`;
-    }
+  if (clear) {
+    hashContent = removeEventFilterBlock(hashContent, 'includedEvents');
+    hashContent = removeEventFilterBlock(hashContent, 'excludedEvents');
+  } else if (included) {
+    const resolved = resolveEventNamesForUrl(included);
+    hashContent = removeEventFilterBlock(hashContent, 'excludedEvents');
+    hashContent = upsertEventFilterBlock(hashContent, 'includedEvents', resolved);
+    hashContent = ensureDateRange(hashContent);
+  } else if (excluded) {
+    hashContent = removeEventFilterBlock(hashContent, 'includedEvents');
+    hashContent = upsertEventFilterBlock(hashContent, 'excludedEvents', excluded);
   }
 
   window.location.hash = hashContent;

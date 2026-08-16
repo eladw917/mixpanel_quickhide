@@ -68,6 +68,7 @@ async function checkCurrentTab() {
 
     if (isContentScriptLoaded) {
       applyBtn.disabled = false;
+      if (typeof updateTimelineFilterButtons === 'function') updateTimelineFilterButtons();
       content.style.display = 'flex';
       inactiveView.style.display = 'none';
       if (tabNavigation) tabNavigation.style.display = 'flex';
@@ -76,6 +77,7 @@ async function checkCurrentTab() {
       if (typeof updateSidebarTabAvailability === 'function') updateSidebarTabAvailability();
     } else {
       applyBtn.disabled = true;
+      if (typeof updateTimelineFilterButtons === 'function') updateTimelineFilterButtons();
       content.style.display = 'none';
       inactiveView.style.display = 'none';
       if (tabNavigation) tabNavigation.style.display = 'none';
@@ -113,6 +115,7 @@ async function checkCurrentTab() {
           // Enable timeline + properties mode (no URL mutation in sidebar)
           currentSidebarMode = response.mode;
           applyBtn.disabled = true; // Can't mutate URL in sidebar
+          if (typeof updateTimelineFilterButtons === 'function') updateTimelineFilterButtons();
           content.style.display = 'flex';
           inactiveView.style.display = 'none';
           if (tabNavigation) tabNavigation.style.display = 'flex';
@@ -131,6 +134,7 @@ async function checkCurrentTab() {
 
   // No valid context found
   applyBtn.disabled = true;
+  if (typeof updateTimelineFilterButtons === 'function') updateTimelineFilterButtons();
   content.style.display = 'none';
   inactiveView.style.display = 'block';
   // Show tab navigation so bookmarks tab is always accessible
@@ -494,6 +498,16 @@ function setupEventListeners() {
         console.error('[Popup] Error collapsing all events:', error);
       }
     });
+  }
+
+  const showOnlySelectedBtn = document.getElementById('showOnlySelectedBtn');
+  if (showOnlySelectedBtn) {
+    showOnlySelectedBtn.addEventListener('click', applyTimelineIncludedEvents);
+  }
+
+  const showAllEventsBtn = document.getElementById('showAllEventsBtn');
+  if (showAllEventsBtn) {
+    showAllEventsBtn.addEventListener('click', clearTimelineEventFilters);
   }
 
   document.getElementById('exportIconBtn').addEventListener('click', async () => {

@@ -11,6 +11,7 @@ function updateSidebarTabAvailability() {
   const timelineDisplaySection = document.querySelector('#eventTimelineTab .timeline-display-section');
   const eventSelectionSection = document.querySelector('#eventTimelineTab .event-selection-section');
   const loadMoreWrap = document.getElementById('loadMoreEventsBtn')?.parentElement;
+  const timelineFilterActions = document.querySelector('.timeline-filter-actions');
   const propertiesSections = document.querySelectorAll('#filterPropertiesTab .section, #filterPropertiesTab .footer');
 
   if (!timelineBtn || !propertiesBtn) return;
@@ -22,6 +23,7 @@ function updateSidebarTabAvailability() {
   if (timelineDisplaySection) timelineDisplaySection.style.display = 'flex';
   if (eventSelectionSection) eventSelectionSection.style.display = 'flex';
   if (loadMoreWrap) loadMoreWrap.style.display = 'block';
+  if (timelineFilterActions) timelineFilterActions.style.display = 'flex';
   propertiesSections.forEach((el) => { el.style.display = ''; });
 
   if (currentSidebarMode === 'activities') {
@@ -32,6 +34,7 @@ function updateSidebarTabAvailability() {
     if (timelineDisplaySection) timelineDisplaySection.style.display = 'none';
     if (eventSelectionSection) eventSelectionSection.style.display = 'none';
     if (loadMoreWrap) loadMoreWrap.style.display = 'none';
+    if (timelineFilterActions) timelineFilterActions.style.display = 'none';
   }
 }
 

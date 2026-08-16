@@ -564,6 +564,11 @@ h2 {
   margin-bottom: 8px;
 }
 
+.timeline-filter-actions {
+  margin-top: 8px;
+  flex: 0 0 auto;
+}
+
 .btn {
   flex: 1;
   padding: 8px 16px;
